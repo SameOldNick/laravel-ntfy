@@ -25,6 +25,11 @@ trait NtfyNotifiable
         return $this->morphOne(NtfyConfiguration::class, 'notifiable');
     }
 
+    public function routeNotificationForNtfy($notification = null)
+    {
+        return $this->resolveNtfyRoute();
+    }
+
     /**
      * Resolve the ntfy destination for this notifiable.
      */
