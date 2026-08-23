@@ -91,7 +91,7 @@ class NtfyChannel
      */
     public function isEnabled(): bool
     {
-        return (bool) config('services.ntfy.enabled', false);
+        return (bool) config('ntfy.enabled', false);
     }
 
     /**
