@@ -3,6 +3,7 @@
 namespace SameOldNick\Ntfy\Concerns;
 
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Notifications\Notification;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Models\NtfyConfiguration;
 
@@ -25,6 +26,12 @@ trait NtfyNotifiable
         return $this->morphOne(NtfyConfiguration::class, 'notifiable');
     }
 
+    /**
+     * Route notifications for the ntfy channel.
+     *
+     * @param  Notification|null  $notification
+     * @return ServerInfo|null
+     */
     public function routeNotificationForNtfy($notification = null)
     {
         return $this->resolveNtfyRoute();
