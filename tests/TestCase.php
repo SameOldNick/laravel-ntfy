@@ -25,8 +25,6 @@ class TestCase extends Orchestra
     {
         tap($app['config'], function (Repository $config) {
             $config->set('database.default', 'testing');
-
-            $config->set('ntfy', require __DIR__.'/../config/ntfy.php');
         });
     }
 }

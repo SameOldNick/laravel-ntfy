@@ -13,6 +13,7 @@
     <env name="APP_KEY" value="base64:ZZf/rq1fnXBjLMI+7uxtUkwnIY6QLYVmJsJtmDmoN2g="/>
     <env name="DB_CONNECTION" value="sqlite"/>
     <env name="DB_DATABASE" value=":memory:"/>
+    <env name="NTFY_SERVER_URL" value="https://ntfy.example.com/"/>
   </php>
   <logging>
     <junit outputFile="build/report.junit.xml"/>

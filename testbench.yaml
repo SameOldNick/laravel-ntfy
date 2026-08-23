@@ -18,6 +18,9 @@ workbench:
   discovers:
     web: true
     api: true
+    config: true
+    migrations: true
+    seeders: true
     commands: true
     components: false
     factories: true
