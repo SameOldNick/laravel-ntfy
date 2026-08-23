@@ -2,7 +2,6 @@
 
 namespace SameOldNick\Ntfy\Channels;
 
-use Exception;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Ntfy\Message;
@@ -24,7 +23,7 @@ class NtfyChannel
     /**
      * Send the given notification.
      */
-    public function send(object $notifiable, Notification $notification): void
+    public function send(object $notifiable, Notification $notification)
     {
         if (! $this->isEnabled()) {
             Log::warning('NtfyChannel: Ntfy is not enabled in the configuration. Skipping notification.', [
@@ -71,19 +70,7 @@ class NtfyChannel
             return;
         }
 
-        try {
-            $this->ntfy->send($message, $routeTo);
-        } catch (Exception $e) {
-            // Log the error but don't throw an exception to avoid breaking the notification flow
-            Log::error('Failed to send ntfy notification: '.$e->getMessage(), [
-                'exception' => $e,
-                'notifiable' => $notifiable,
-                'notification' => $notification,
-                'message' => $message->getData(),
-            ]);
-
-            throw $e; // Rethrow the exception to allow the notification system to handle it (e.g., retry, log, etc.)
-        }
+        return $this->ntfy->sendRequest($message, $routeTo);
     }
 
     /**

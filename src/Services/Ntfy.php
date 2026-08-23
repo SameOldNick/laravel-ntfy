@@ -2,6 +2,9 @@
 
 namespace SameOldNick\Ntfy\Services;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Ntfy\Auth\Token;
 use Ntfy\Auth\User;
 use Ntfy\Exception\EndpointException;
@@ -28,6 +31,19 @@ class Ntfy
      * @throws EndpointException
      */
     public function send(Message $message, ?ServerInfo $serverInfo = null): MessageResponse
+    {
+        $response = $this->sendRequest($message, $serverInfo);
+
+        return $this->processResponse($response);
+    }
+
+    /**
+     * Send a message via ntfy and return the raw HTTP response.
+     *
+     * @throws NtfyException
+     * @throws EndpointException
+     */
+    public function sendRequest(Message $message, ?ServerInfo $serverInfo = null): Response
     {
         $serverInfo = $serverInfo ?? ServerInfo::fromConfig();
 
@@ -66,6 +82,34 @@ class Ntfy
         if ($defaultTopic = $serverInfo->topic) {
             // ServerInfo topic takes precedence over message topic, as the message may not have one set and the ServerInfo topic is required for sending
             $message->topic($defaultTopic);
+        }
+    }
+
+    protected function processResponse(Response $response): MessageResponse
+    {
+        try {
+            $response->throw();
+
+            return new MessageResponse($response->json());
+        } catch (ConnectionException $e) {
+            throw new NtfyException('Connection error: '.$e->getMessage(), 0, $e);
+        } catch (RequestException $e) {
+            if ($e->response->header('Content-Type') === 'application/json') {
+                $json = $e->response->json();
+
+                if (isset($json['error'], $json['code'])) {
+                    $message = sprintf(
+                        '%s (error code: %s, http status: %s)',
+                        $json['error'],
+                        $json['code'],
+                        $json['http'] ?? $e->response->status(),
+                    );
+
+                    throw new EndpointException('Request error: '.$message, 0, $e);
+                }
+            }
+
+            throw new EndpointException('Request error: '.$e->getMessage(), 0, $e);
         }
     }
 }
