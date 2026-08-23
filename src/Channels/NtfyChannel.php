@@ -27,6 +27,11 @@ class NtfyChannel
     public function send(object $notifiable, Notification $notification): void
     {
         if (! $this->isEnabled()) {
+            Log::warning('NtfyChannel: Ntfy is not enabled in the configuration. Skipping notification.', [
+                'notifiable' => $notifiable,
+                'notification' => $notification,
+            ]);
+
             return;
         }
 
@@ -34,6 +39,11 @@ class NtfyChannel
 
         if (! $message instanceof Message) {
             // Notification doesn't have a toNtfy method or doesn't implement NtfyNotification contract
+            Log::warning('NtfyChannel: Notification does not implement NtfyNotification contract or have a toNtfy method. Skipping notification.', [
+                'notifiable' => $notifiable,
+                'notification' => $notification,
+            ]);
+
             return;
         }
 
