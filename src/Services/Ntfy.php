@@ -71,7 +71,20 @@ class Ntfy
             default => null,
         };
 
-        return new Client($server, $auth);
+        $options = $this->getHttpOptions($serverInfo);
+
+        return new Client($server, $auth, $options);
+    }
+
+    /**
+     * Get the HTTP options for the Ntfy Client.
+     */
+    protected function getHttpOptions(ServerInfo $serverInfo): array
+    {
+        $serverOptions = $serverInfo->options ?? [];
+        $globalOptions = config('ntfy.http', []);
+
+        return array_merge($globalOptions, $serverOptions);
     }
 
     /**
@@ -85,6 +98,12 @@ class Ntfy
         }
     }
 
+    /**
+     * Process the HTTP response and return a MessageResponse instance.
+     *
+     * @throws NtfyException
+     * @throws EndpointException
+     */
     protected function processResponse(Response $response): MessageResponse
     {
         try {

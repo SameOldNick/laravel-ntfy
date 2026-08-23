@@ -18,6 +18,7 @@ class ServerInfo
         public readonly ?string $authPassword = null,
         public readonly ?string $authToken = null,
         public readonly ?string $topic = null,
+        public readonly ?array $options = null,
     ) {
         //
     }
@@ -25,7 +26,7 @@ class ServerInfo
     /**
      * Create a ServerInfo instance from configuration.
      */
-    public static function fromConfig(): self
+    public static function fromConfig(?array $options = null): self
     {
         return new self(
             url: config('ntfy.server_url', 'https://ntfy.sh/'),
@@ -33,42 +34,46 @@ class ServerInfo
             authPassword: config('ntfy.auth_credentials.password'),
             authToken: config('ntfy.auth_token'),
             topic: config('ntfy.default_topic'),
+            options: $options,
         );
     }
 
     /**
      * Create ServerInfo with username and password authentication.
      */
-    public static function createWithAuth(string $url, string $username, string $password, ?string $topic = null): self
+    public static function createWithAuth(string $url, string $username, string $password, ?string $topic = null, ?array $options = null): self
     {
         return new self(
             url: $url,
             authUsername: $username,
             authPassword: $password,
             topic: $topic,
+            options: $options,
         );
     }
 
     /**
      * Create ServerInfo with token authentication.
      */
-    public static function createWithToken(string $url, string $token, ?string $topic = null): self
+    public static function createWithToken(string $url, string $token, ?string $topic = null, ?array $options = null): self
     {
         return new self(
             url: $url,
             authToken: $token,
             topic: $topic,
+            options: $options,
         );
     }
 
     /**
      * Create ServerInfo without authentication.
      */
-    public static function createWithoutAuth(string $url, ?string $topic = null): self
+    public static function createWithoutAuth(string $url, ?string $topic = null, ?array $options = null): self
     {
         return new self(
             url: $url,
             topic: $topic,
+            options: $options,
         );
     }
 }
