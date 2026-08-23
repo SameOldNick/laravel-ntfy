@@ -3,6 +3,8 @@
 namespace SameOldNick\Ntfy\Tests\Unit;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Ntfy\Auth\Token;
 use Ntfy\Auth\User;
@@ -264,6 +266,147 @@ class NtfyClientTest extends TestCase
         $response = $client->send($message);
 
         $this->assertInstanceOf(MessageResponse::class, $response);
+    }
+
+    /**
+     * Test client respects HTTP options.
+     */
+    public function test_client_respects_http_options(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => function (Request $request, $options) {
+                return Http::response([
+                    'id' => 'msg-options',
+                    'options' => $options,
+                ], 200);
+            },
+        ]);
+
+        $server = new Server('https://ntfy.sh/');
+        $options = [
+            'timeout' => 15,
+            'connect_timeout' => 10,
+            'verify_ssl' => false,
+        ];
+
+        $client = new Client($server, options: $options);
+
+        $message = new Message;
+        $message->topic('test');
+
+        $response = $client->send($message);
+
+        $this->assertInstanceOf(Response::class, $response);
+
+        Http::assertSent(function (Request $request, Response $response) {
+            return $response->status() === 200 &&
+                    $response->json('id') === 'msg-options' &&
+                    $response->json('options.timeout') === 15 &&
+                    $response->json('options.connect_timeout') === 10 &&
+                    $response->json('options.verify') === false;
+        });
+    }
+
+    /**
+     * Test client respects HTTP retry options.
+     */
+    public function test_client_http_retry_options_succeeds(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => Http::sequence()
+                ->pushFailedConnection('Connection failed')
+                ->pushFailedConnection('Connection failed')
+                ->push(['id' => 'msg-retry'], 200),
+        ]);
+
+        $server = new Server('https://ntfy.sh/');
+        $options = [
+            'retry' => [
+                'enabled' => true,
+                'max_attempts' => 3,
+                'delay' => 1,
+            ],
+        ];
+
+        $client = new Client($server, options: $options);
+
+        $message = new Message;
+        $message->topic('test');
+
+        $response = $client->send($message);
+
+        $this->assertInstanceOf(Response::class, $response);
+
+        Http::assertSent(function (Request $request, ?Response $response) {
+            return $response !== null &&
+                   $response->status() === 200 &&
+                   $response->json('id') === 'msg-retry';
+        });
+    }
+
+    /**
+     * Test client respects HTTP retry options.
+     */
+    public function test_client_http_retry_options_request_fails(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => fn () => Http::response('Internal Server Error', 500),
+        ]);
+
+        $server = new Server('https://ntfy.sh/');
+        $options = [
+            'retry' => [
+                'enabled' => true,
+                'max_attempts' => 3,
+                'delay' => 1,
+            ],
+        ];
+
+        $client = new Client($server, options: $options);
+
+        $message = new Message;
+        $message->topic('test');
+
+        $response = $client->send($message);
+
+        $this->assertInstanceOf(Response::class, $response);
+
+        Http::assertSent(function (Request $request, ?Response $response) {
+            return $response !== null &&
+                   $response->status() === 500;
+        });
+    }
+
+    /**
+     * Test client respects HTTP retry options.
+     */
+    public function test_client_http_retry_options_connection_fails(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => Http::sequence()
+                ->pushFailedConnection('Connection failed')
+                ->pushFailedConnection('Connection failed')
+                ->pushFailedConnection('Connection failed')
+                ->push(['id' => 'msg-retry'], 200),
+        ]);
+
+        $server = new Server('https://ntfy.sh/');
+        $options = [
+            'retry' => [
+                'enabled' => true,
+                'max_attempts' => 3,
+                'delay' => 1,
+            ],
+        ];
+
+        $client = new Client($server, options: $options);
+
+        $message = new Message;
+        $message->topic('test');
+
+        $this->expectException(ConnectionException::class);
+
+        $client->send($message);
     }
 
     /**
