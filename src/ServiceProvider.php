@@ -3,6 +3,7 @@
 namespace SameOldNick\Ntfy;
 
 use Illuminate\Notifications\ChannelManager;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use SameOldNick\Ntfy\Channels\NtfyChannel;
 use SameOldNick\Ntfy\Services\Ntfy;
@@ -28,10 +29,12 @@ class ServiceProvider extends BaseServiceProvider
      *
      * @return void
      */
-    public function boot(ChannelManager $manager)
+    public function boot()
     {
-        $manager->extend('ntfy', function ($app) {
-            return new NtfyChannel($app->make(Ntfy::class));
+        Notification::resolved(function (ChannelManager $manager) {
+            $manager->extend('ntfy', function ($app) {
+                return new NtfyChannel($app->make(Ntfy::class));
+            });
         });
 
         $this->publishes([
