@@ -39,6 +39,21 @@ class ServerInfo
     }
 
     /**
+     * Create a ServerInfo instance from an array.
+     */
+    public static function fromArray(array $array): self
+    {
+        return new self(
+            url: $array['server_url'],
+            authUsername: $array['auth_username'] ?? null,
+            authPassword: $array['auth_password'] ?? null,
+            authToken: $array['auth_token'] ?? null,
+            topic: $array['topic'] ?? null,
+            options: $array['options'] ?? null,
+        );
+    }
+
+    /**
      * Create ServerInfo with username and password authentication.
      */
     public static function createWithAuth(string $url, string $username, string $password, ?string $topic = null, ?array $options = null): self

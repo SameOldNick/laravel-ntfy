@@ -49,18 +49,10 @@ class NtfyChannel
             return;
         }
 
-        $routeTo = null;
+        $routeTo = method_exists($notifiable, 'routeNotificationFor') ? $notifiable->routeNotificationFor('ntfy', $notification) : null;
 
-        if (method_exists($notifiable, 'routeNotificationFor')) {
-            /**
-             * TODO:
-             *  - Rely on routeNotificationFor returning a ServerInfo instance
-             *  - If it returns null, skip sending the notification
-             *  - The topic should be set in the ServerInfo object returned by the notifiable
-             *  - This allows logic to be encapsulated in the notifiable model and keeps the channel implementation simpler
-             *  - It also prevents all notifiables notifications going to the global server/topic if they haven't set up their ntfy configuration yet, which could be a privacy concern
-             */
-            $routeTo = $notifiable->routeNotificationFor('ntfy', $notification);
+        if (is_array($routeTo)) {
+            $routeTo = ServerInfo::fromArray($routeTo);
         }
 
         if (! $routeTo instanceof ServerInfo) {
