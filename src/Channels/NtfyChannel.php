@@ -56,8 +56,8 @@ class NtfyChannel
         }
 
         if (! $routeTo instanceof ServerInfo) {
-            // If routeNotificationFor doesn't return a ServerInfo instance, log a warning and skip sending the notification
-            Log::warning('NtfyChannel: routeNotificationFor did not return a ServerInfo instance for notifiable', [
+            // If $routeTo is not a ServerInfo instance, log a warning and skip sending the notification
+            Log::warning('NtfyChannel: routeNotificationFor did not return server info for notifiable', [
                 'notifiable' => $notifiable,
                 'notification' => $notification,
             ]);
