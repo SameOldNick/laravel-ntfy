@@ -41,6 +41,10 @@ class ServiceProvider extends BaseServiceProvider
             __DIR__.'/../config/ntfy.php' => config_path('ntfy.php'),
         ], 'ntfy-config');
 
+        $this->publishesMigrations([
+            __DIR__.'/../database/migrations' => database_path('migrations'),
+        ], 'ntfy-migrations');
+
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'ntfy');
         $this->publishes([
             __DIR__.'/../lang' => $this->app->langPath('vendor/ntfy'),
