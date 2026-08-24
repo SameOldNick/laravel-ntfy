@@ -2,6 +2,7 @@
 
 namespace SameOldNick\Ntfy\Tests\Unit;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Mockery;
@@ -112,7 +113,7 @@ class NtfyServiceTest extends TestCase
         $message->title('Test Title');
         $message->body('Test Body');
 
-        $result = $this->ntfyMock->send($message);
+        $result = $this->ntfyMock->send($message, ServerInfo::fromConfig());
 
         $this->assertEquals('message-123', $result->id());
         $this->assertEquals('test-topic', $result->topic());
@@ -143,7 +144,7 @@ class NtfyServiceTest extends TestCase
             ->once()
             ->andReturn($response);
 
-        $result = $this->ntfyMock->send($message);
+        $result = $this->ntfyMock->send($message, ServerInfo::fromConfig());
 
         $this->assertInstanceOf(MessageResponse::class, $result);
         $this->assertEquals('message-123', $result->id());
@@ -164,7 +165,7 @@ class NtfyServiceTest extends TestCase
         $message = new Message;
         $message->title('Test');
 
-        $result = $this->ntfy->send($message);
+        $result = $this->ntfy->send($message, ServerInfo::fromConfig());
 
         $this->assertInstanceOf(MessageResponse::class, $result);
         $this->assertEquals('Test', $result->title());
@@ -184,11 +185,11 @@ class NtfyServiceTest extends TestCase
         $this->clientMock
             ->shouldReceive('send')
             ->once()
-            ->andThrow(new NtfyException('Send failed'));
+            ->andThrow(new ConnectionException('Connection failed'));
 
         $this->expectException(NtfyException::class);
 
-        $this->ntfyMock->send($message);
+        $this->ntfyMock->send($message, ServerInfo::fromConfig());
     }
 
     /**
@@ -204,11 +205,11 @@ class NtfyServiceTest extends TestCase
         $this->clientMock
             ->shouldReceive('send')
             ->once()
-            ->andThrow(new EndpointException('Endpoint error'));
+            ->andReturn(new Response(Http::response([], 500)->wait()));
 
         $this->expectException(EndpointException::class);
 
-        $this->ntfyMock->send($message);
+        $this->ntfyMock->send($message, ServerInfo::fromConfig());
     }
 
     /**
@@ -226,8 +227,8 @@ class NtfyServiceTest extends TestCase
         $message2->topic('topic2');
         $message2->title('Second Message');
 
-        $result1 = $this->ntfyMock->send($message1);
-        $result2 = $this->ntfyMock->send($message2);
+        $result1 = $this->ntfyMock->send($message1, ServerInfo::fromConfig());
+        $result2 = $this->ntfyMock->send($message2, ServerInfo::fromConfig());
 
         $this->assertEquals('topic1', $result1->topic());
         $this->assertEquals('First Message', $result1->title());
