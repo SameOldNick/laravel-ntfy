@@ -104,7 +104,7 @@ class Ntfy
      * @throws NtfyException
      * @throws EndpointException
      */
-    protected function processResponse(Response $response): MessageResponse
+    public function processResponse(Response $response): MessageResponse
     {
         try {
             $response->throw();
