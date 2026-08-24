@@ -32,16 +32,21 @@ class Ntfy
      */
     public function send(Message $message, ServerInfo $serverInfo): MessageResponse
     {
-        $response = $this->sendRequest($message, $serverInfo);
+        try {
+            $response = $this->sendRequest($message, $serverInfo);
 
-        return $this->processResponse($response);
+            return $this->processResponse($response);
+        } catch (ConnectionException $e) {
+            // ConnectionException needs to be caught here because it's not thrown by the processResponse method, but by the sendRequest method.
+            // We want to wrap it in a NtfyException for consistency.
+            throw new NtfyException('Connection error: '.$e->getMessage(), 0, $e);
+        }
     }
 
     /**
      * Send a message via ntfy and return the raw HTTP response.
      *
-     * @throws NtfyException
-     * @throws EndpointException
+     * @throws ConnectionException Thrown if the request fails due to a connection error.
      */
     public function sendRequest(Message $message, ServerInfo $serverInfo): Response
     {
@@ -108,8 +113,6 @@ class Ntfy
             $response->throw();
 
             return new MessageResponse($response->json());
-        } catch (ConnectionException $e) {
-            throw new NtfyException('Connection error: '.$e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             if ($e->response->header('Content-Type') === 'application/json') {
                 $json = $e->response->json();
