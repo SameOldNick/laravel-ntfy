@@ -2,6 +2,8 @@
 
 namespace SameOldNick\Ntfy\Tests\Unit;
 
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use Mockery\MockInterface;
 use Ntfy\Exception\EndpointException;
@@ -41,7 +43,7 @@ class NtfyServiceTest extends TestCase
             'auth_token' => 'test-token-123',
         ];
 
-        config()->set('services.ntfy', $config);
+        config()->set('ntfy', $config);
 
         $serverInfo = ServerInfo::fromConfig();
 
@@ -65,7 +67,7 @@ class NtfyServiceTest extends TestCase
             ],
         ];
 
-        config()->set('services.ntfy', $config);
+        config()->set('ntfy', $config);
 
         $serverInfo = ServerInfo::fromConfig();
 
@@ -87,7 +89,7 @@ class NtfyServiceTest extends TestCase
             'auth_method' => 'none',
         ];
 
-        config()->set('services.ntfy', $config);
+        config()->set('ntfy', $config);
 
         $serverInfo = ServerInfo::fromConfig();
 
@@ -128,13 +130,13 @@ class NtfyServiceTest extends TestCase
         $message->title('Test Title');
         $message->body('Test Body');
 
-        $response = new MessageResponse([
+        $response = new Response(Http::response([
             'id' => 'message-123',
             'topic' => 'test-topic',
             'title' => 'Test Title',
             'message' => 'Test Body',
             'time' => time(),
-        ]);
+        ])->wait());
 
         $this->clientMock
             ->shouldReceive('send')
@@ -157,7 +159,7 @@ class NtfyServiceTest extends TestCase
             'default_topic' => 'topic-from-config',
         ];
 
-        config()->set('services.ntfy', $config);
+        config()->set('ntfy', $config);
 
         $message = new Message;
         $message->title('Test');

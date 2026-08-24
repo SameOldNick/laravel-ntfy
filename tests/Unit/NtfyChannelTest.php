@@ -3,7 +3,9 @@
 namespace SameOldNick\Ntfy\Tests\Unit;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Client\Response;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use Mockery\MockInterface;
 use Ntfy\Message;
@@ -11,7 +13,6 @@ use Ntfy\Server;
 use SameOldNick\Ntfy\Channels\NtfyChannel;
 use SameOldNick\Ntfy\Concerns\NtfyNotifiable;
 use SameOldNick\Ntfy\Contracts\NtfyNotification;
-use SameOldNick\Ntfy\DTOs\MessageResponse;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Models\NtfyConfiguration;
 use SameOldNick\Ntfy\Services\Client;
@@ -40,7 +41,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_is_disabled_when_not_configured(): void
     {
-        config(['services.ntfy.enabled' => false]);
+        config(['ntfy.enabled' => false]);
 
         $this->assertFalse($this->channel->isEnabled());
     }
@@ -50,7 +51,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_is_enabled_when_configured(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $this->assertTrue($this->channel->isEnabled());
     }
@@ -60,7 +61,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_sends_notification_when_enabled(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class
         {
@@ -86,13 +87,13 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse([
+        $response = new Response(Http::response([
             'id' => 'msg-123',
             'topic' => 'test-topic',
-        ]);
+        ])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->andReturn($response);
 
@@ -104,7 +105,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_skips_sending_when_disabled(): void
     {
-        config(['services.ntfy.enabled' => false]);
+        config(['ntfy.enabled' => false]);
 
         $notifiable = new class {};
 
@@ -127,7 +128,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_sets_topic_from_notifiable_routing(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class
         {
@@ -151,7 +152,7 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-456']);
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
 
         $this->ntfyMock
             ->shouldReceive('createClient')
@@ -162,7 +163,7 @@ class NtfyChannelTest extends TestCase
                        $serverInfo->topic === 'custom-topic-from-notifiable';
             }))
             ->andReturn(
-                Mockery::mock(Client::class)
+                Mockery::mock(new Client(new Server('https://ntfy.sh/')))
                     ->makePartial()
                     ->shouldReceive('send')
                     ->once()
@@ -175,7 +176,10 @@ class NtfyChannelTest extends TestCase
                     ->getMock(),
             );
 
-        $this->channel->send($notifiable, $notification);
+        $actualResponse = $this->channel->send($notifiable, $notification);
+
+        $this->assertInstanceOf(Response::class, $actualResponse);
+        $this->assertEquals('msg-456', $actualResponse->json('id'));
     }
 
     /**
@@ -183,7 +187,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_sets_server_info_from_notifiable_routing(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class
         {
@@ -208,10 +212,10 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-456']);
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->passthru();
 
@@ -246,7 +250,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_routes_to_ntfy_notifable_token(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class extends Model
         {
@@ -278,10 +282,10 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-456']);
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->passthru();
 
@@ -316,7 +320,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_routes_to_ntfy_notifable_username_password(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class extends Model
         {
@@ -349,10 +353,10 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-456']);
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->passthru();
 
@@ -388,7 +392,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_routes_to_ntfy_notifable_no_auth(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class extends Model
         {
@@ -419,10 +423,10 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-456']);
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->passthru();
 
@@ -459,7 +463,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_uses_to_ntfy_method(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class
         {
@@ -484,10 +488,10 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-789']);
+        $response = new Response(Http::response(['id' => 'msg-789'])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->andReturn($response);
 
@@ -499,7 +503,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_throws_exception_when_notification_invalid(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class {};
 
@@ -517,7 +521,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_works_with_ntfy_notification_interface(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class
         {
@@ -542,13 +546,13 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse([
+        $response = new Response(Http::response([
             'id' => 'msg-interface',
             'topic' => 'interface-topic',
-        ]);
+        ])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->andReturn($response);
 
@@ -560,7 +564,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_handles_notifiable_without_routing_method(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class {};
 
@@ -576,7 +580,7 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-no-routing']);
+        $response = new Response(Http::response(['id' => 'msg-no-routing'])->wait());
 
         // Won't send because routeNotificationFor doesn't return a ServerInfo instance
         $this->ntfyMock
@@ -591,7 +595,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_sends_complete_message(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class
         {
@@ -619,10 +623,10 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-complete']);
+        $response = new Response(Http::response(['id' => 'msg-complete'])->wait());
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->passthru();
 
@@ -661,7 +665,7 @@ class NtfyChannelTest extends TestCase
      */
     public function test_channel_passes_notifiable_to_to_ntfy(): void
     {
-        config(['services.ntfy.enabled' => true]);
+        config(['ntfy.enabled' => true]);
 
         $notifiable = new class
         {
@@ -688,15 +692,19 @@ class NtfyChannelTest extends TestCase
             }
         };
 
-        $response = new MessageResponse(['id' => 'msg-user-123']);
+        $response = Http::response([
+            'id' => 'msg-user-123',
+            'topic' => 'notifications',
+            'message' => 'User 123 triggered notification',
+        ], 200);
 
         $this->ntfyMock
-            ->shouldReceive('send')
+            ->shouldReceive('sendRequest')
             ->once()
             ->with(Mockery::on(function ($message) {
                 return str_contains($message->getData()['message'], 'User 123');
             }), Mockery::any())
-            ->andReturn($response);
+            ->andReturn(new Response($response->wait()));
 
         $this->channel->send($notifiable, $notification);
     }

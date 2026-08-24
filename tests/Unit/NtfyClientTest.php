@@ -8,11 +8,8 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Ntfy\Auth\Token;
 use Ntfy\Auth\User;
-use Ntfy\Exception\EndpointException;
-use Ntfy\Exception\NtfyException;
 use Ntfy\Message;
 use Ntfy\Server;
-use SameOldNick\Ntfy\DTOs\MessageResponse;
 use SameOldNick\Ntfy\Services\Client;
 use SameOldNick\Ntfy\Tests\TestCase;
 
@@ -43,9 +40,9 @@ class NtfyClientTest extends TestCase
 
         $response = $client->send($message);
 
-        $this->assertInstanceOf(MessageResponse::class, $response);
-        $this->assertEquals('message-123', $response->id());
-        $this->assertEquals('test-topic', $response->topic());
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals('message-123', $response->json('id'));
+        $this->assertEquals('test-topic', $response->json('topic'));
     }
 
     /**
@@ -70,7 +67,7 @@ class NtfyClientTest extends TestCase
 
         $response = $client->send($message);
 
-        $this->assertInstanceOf(MessageResponse::class, $response);
+        $this->assertInstanceOf(Response::class, $response);
 
         // Verify the request was made (just check that a request was recorded)
         Http::assertSent(function ($request) {
@@ -100,7 +97,7 @@ class NtfyClientTest extends TestCase
 
         $response = $client->send($message);
 
-        $this->assertInstanceOf(MessageResponse::class, $response);
+        $this->assertInstanceOf(Response::class, $response);
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://ntfy.sh/' &&
@@ -128,7 +125,7 @@ class NtfyClientTest extends TestCase
 
         $response = $client->send($message);
 
-        $this->assertInstanceOf(MessageResponse::class, $response);
+        $this->assertInstanceOf(Response::class, $response);
     }
 
     /**
@@ -146,7 +143,7 @@ class NtfyClientTest extends TestCase
         $message = new Message;
         $message->topic('test');
 
-        $this->expectException(NtfyException::class);
+        $this->expectException(ConnectionException::class);
 
         $client->send($message);
     }
@@ -170,10 +167,11 @@ class NtfyClientTest extends TestCase
         $message = new Message;
         $message->topic('forbidden-topic');
 
-        $this->expectException(EndpointException::class);
-        $this->expectExceptionMessage('Topic not allowed');
+        $response = $client->send($message);
 
-        $client->send($message);
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals(403, $response->status());
+        $this->assertEquals('Topic not allowed', $response->json('error'));
     }
 
     /**
@@ -191,9 +189,10 @@ class NtfyClientTest extends TestCase
         $message = new Message;
         $message->topic('test');
 
-        $this->expectException(EndpointException::class);
+        $response = $client->send($message);
 
-        $client->send($message);
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals(500, $response->status());
     }
 
     /**
@@ -216,8 +215,8 @@ class NtfyClientTest extends TestCase
 
         $response = $client->send($message);
 
-        $this->assertInstanceOf(MessageResponse::class, $response);
-        $this->assertEquals('custom-msg', $response->id());
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals('custom-msg', $response->json('id'));
     }
 
     /**
@@ -265,7 +264,7 @@ class NtfyClientTest extends TestCase
 
         $response = $client->send($message);
 
-        $this->assertInstanceOf(MessageResponse::class, $response);
+        $this->assertInstanceOf(Response::class, $response);
     }
 
     /**
@@ -434,11 +433,11 @@ class NtfyClientTest extends TestCase
 
         $response = $client->send($message);
 
-        $this->assertEquals('msg-data', $response->id());
-        $this->assertEquals('data-topic', $response->topic());
-        $this->assertEquals('Title', $response->title());
-        $this->assertEquals('Message body', $response->message());
-        $this->assertEquals(3, $response->priority());
-        $this->assertEquals($time, $response->time());
+        $this->assertEquals('msg-data', $response->json('id'));
+        $this->assertEquals('data-topic', $response->json('topic'));
+        $this->assertEquals('Title', $response->json('title'));
+        $this->assertEquals('Message body', $response->json('message'));
+        $this->assertEquals(3, $response->json('priority'));
+        $this->assertEquals($time, $response->json('time'));
     }
 }
