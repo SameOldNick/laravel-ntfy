@@ -30,7 +30,7 @@ class Ntfy
      * @throws NtfyException
      * @throws EndpointException
      */
-    public function send(Message $message, ?ServerInfo $serverInfo = null): MessageResponse
+    public function send(Message $message, ServerInfo $serverInfo): MessageResponse
     {
         $response = $this->sendRequest($message, $serverInfo);
 
@@ -43,10 +43,8 @@ class Ntfy
      * @throws NtfyException
      * @throws EndpointException
      */
-    public function sendRequest(Message $message, ?ServerInfo $serverInfo = null): Response
+    public function sendRequest(Message $message, ServerInfo $serverInfo): Response
     {
-        $serverInfo = $serverInfo ?? ServerInfo::fromConfig();
-
         // If message doesn't have a topic, set the default
         $this->assignTopic($message, $serverInfo);
 
