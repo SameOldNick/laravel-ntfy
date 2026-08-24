@@ -2,6 +2,7 @@
 
 namespace SameOldNick\Ntfy\Channels;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Ntfy\Message;
@@ -22,6 +23,8 @@ class NtfyChannel
 
     /**
      * Send the given notification.
+     *
+     * @return Response
      */
     public function send(object $notifiable, Notification $notification)
     {
