@@ -74,7 +74,6 @@ class NotificationTest extends TestCase
     public function test_routes_notification_to_user_http_success(): void
     {
         Http::fake([
-            // Stub a JSON response for GitHub endpoints...
             'ntfy.fakeuser.com/*' => function (Request $request) {
                 return Http::response([
                     'id' => 'msg-123',
@@ -104,6 +103,50 @@ class NotificationTest extends TestCase
         );
 
         $user->notifyNow($notification);
+
+        Http::assertSent(function (Request $request, Response $response) {
+            return $response->status() === 200 &&
+                    $response->json('id') === 'msg-123';
+        });
+    }
+
+    /**
+     * Test that a user is notified with a basic notification using an array router.
+     */
+    public function test_routes_notification_to_user_array_router(): void
+    {
+        Http::fake([
+            'ntfy.fakeuser.com/*' => function (Request $request) {
+                return Http::response([
+                    'id' => 'msg-123',
+                    'topic' => 'test-topic',
+                    'title' => 'Test Notification',
+                    'message' => 'This is a test notification.',
+                    'priority' => 3,
+                    'time' => time(),
+                ], 200);
+            },
+
+            // Stub a string response for all other endpoints...
+            '*' => function (Request $request) {
+                return Http::response('Not Found', 404);
+            },
+        ]);
+
+        $user = $this->createTestUser();
+
+        $user->ntfyRoute = [
+            'server_url' => 'https://ntfy.fakeuser.com/',
+            'auth_token' => 'test-token-123',
+            'topic' => 'test-topic',
+        ];
+
+        $notification = new TestNotification(
+            title: 'Test Notification',
+            message: 'This is a test notification.',
+        );
+
+        $user->notify($notification);
 
         Http::assertSent(function (Request $request, Response $response) {
             return $response->status() === 200 &&
