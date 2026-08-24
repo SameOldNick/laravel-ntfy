@@ -69,15 +69,17 @@ class Client
             $httpClient = $httpClient->withOptions($options['options'] ?? []);
         }
 
-        if ($this->auth instanceof User) {
-            $httpClient = $httpClient->withBasicAuth(
-                $this->auth->getUsername(),
-                $this->auth->getPassword(),
-            );
-        } elseif ($this->auth instanceof Token) {
-            $httpClient = $httpClient->withToken(
-                $this->auth->getToken(),
-            );
+        if ($this->auth) {
+            if ($this->auth instanceof User) {
+                $httpClient = $httpClient->withBasicAuth(
+                    $this->auth->getUsername(),
+                    $this->auth->getPassword(),
+                );
+            } elseif ($this->auth instanceof Token) {
+                $httpClient = $httpClient->withToken(
+                    $this->auth->getToken(),
+                );
+            }
         }
 
         return $httpClient;
