@@ -23,10 +23,8 @@ class NtfyChannel
 
     /**
      * Send the given notification.
-     *
-     * @return Response
      */
-    public function send(object $notifiable, Notification $notification)
+    public function send(object $notifiable, Notification $notification): ?Response
     {
         if (! $this->isEnabled()) {
             Log::warning('NtfyChannel: Ntfy is not enabled in the configuration. Skipping notification.', [
@@ -34,7 +32,7 @@ class NtfyChannel
                 'notification' => $notification,
             ]);
 
-            return;
+            return null;
         }
 
         $message = $this->toMessage($notifiable, $notification);
@@ -46,7 +44,7 @@ class NtfyChannel
                 'notification' => $notification,
             ]);
 
-            return;
+            return null;
         }
 
         $routeTo = method_exists($notifiable, 'routeNotificationFor') ? $notifiable->routeNotificationFor('ntfy', $notification) : null;
@@ -62,7 +60,7 @@ class NtfyChannel
                 'notification' => $notification,
             ]);
 
-            return;
+            return null;
         }
 
         return $this->ntfy->sendRequest($message, $routeTo);
