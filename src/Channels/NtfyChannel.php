@@ -67,11 +67,11 @@ class NtfyChannel
     }
 
     /**
-     * Check if ntfy is enabled and configured.
+     * Check if ntfy notification channel is enabled in the configuration.
      */
     public function isEnabled(): bool
     {
-        return (bool) config('ntfy.enabled', false);
+        return $this->ntfy->isChannelEnabled();
     }
 
     /**

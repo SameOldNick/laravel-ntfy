@@ -80,6 +80,14 @@ class Ntfy
     }
 
     /**
+     * Check if ntfy notification channel is enabled in the configuration.
+     */
+    public function isChannelEnabled(): bool
+    {
+        return (bool) config('ntfy.enabled', false);
+    }
+
+    /**
      * Get the HTTP options for the Ntfy Client.
      */
     protected function getHttpOptions(ServerInfo $serverInfo): array
