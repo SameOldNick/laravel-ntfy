@@ -12,6 +12,7 @@ use Ntfy\Exception\NtfyException;
 use Ntfy\Message;
 use SameOldNick\Ntfy\DTOs\MessageResponse;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
+use SameOldNick\Ntfy\Facades\Ntfy as NtfyFacade;
 use SameOldNick\Ntfy\Services\Client;
 use SameOldNick\Ntfy\Services\Ntfy;
 use SameOldNick\Ntfy\Tests\TestCase;
@@ -40,8 +41,10 @@ class NtfyServiceTest extends TestCase
     public function test_ntfy_service_initializes_with_token_config(): void
     {
         $config = [
-            'server_url' => 'https://ntfy.example.com/',
-            'auth_token' => 'test-token-123',
+            'global' => [
+                'server_url' => 'https://ntfy.example.com/',
+                'auth_token' => 'test-token-123',
+            ],
         ];
 
         config()->set('ntfy', $config);
@@ -61,10 +64,10 @@ class NtfyServiceTest extends TestCase
     public function test_ntfy_service_initializes_with_auth_config(): void
     {
         $config = [
-            'server_url' => 'https://ntfy.example.com/',
-            'auth_credentials' => [
-                'username' => 'testuser',
-                'password' => 'testpass',
+            'global' => [
+                'server_url' => 'https://ntfy.example.com/',
+                'auth_username' => 'testuser',
+                'auth_password' => 'testpass',
             ],
         ];
 
@@ -86,8 +89,9 @@ class NtfyServiceTest extends TestCase
     public function test_creates_client_without_auth(): void
     {
         $config = [
-            'server_url' => 'https://ntfy.example.com/',
-            'auth_method' => 'none',
+            'global' => [
+                'server_url' => 'https://ntfy.example.com/',
+            ],
         ];
 
         config()->set('ntfy', $config);
@@ -154,22 +158,22 @@ class NtfyServiceTest extends TestCase
     /**
      * Test that default topic is assigned when not set.
      */
-    public function test_default_topic_is_assigned(): void
+    public function test_server_info_topic_is_assigned(): void
     {
-        $config = [
-            'default_topic' => 'topic-from-config',
-        ];
-
-        config()->set('ntfy', $config);
+        NtfyFacade::fake();
 
         $message = new Message;
         $message->title('Test');
+        $message->topic('topic-from-message'); // No topic set
 
-        $result = $this->ntfy->send($message, ServerInfo::fromConfig());
+        $result = NtfyFacade::send($message, ServerInfo::fromArray([
+            'server_url' => 'https://ntfy.example.com/',
+            'topic' => 'topic-from-server-info', // This should override the message topic
+        ]));
 
         $this->assertInstanceOf(MessageResponse::class, $result);
         $this->assertEquals('Test', $result->title());
-        $this->assertEquals('topic-from-config', $result->topic());
+        $this->assertEquals('topic-from-server-info', $result->topic());
     }
 
     /**
@@ -251,13 +255,8 @@ class NtfyServiceTest extends TestCase
         if ($mockSend) {
             $this->ntfyMock
                 ->shouldReceive('send')
-                ->andReturnUsing(function (Message $message, ?ServerInfo $serverInfo = null) {
-                    try {
-                        $topic = $message->getData()['topic'];
-                    } catch (NtfyException) {
-                        // If message doesn't have a topic, assign default topic for testing
-                        $topic = $serverInfo->topic ?? 'default-topic';
-                    }
+                ->andReturnUsing(function (Message $message, ServerInfo $serverInfo) {
+                    $topic = $message->getData()['topic'];
 
                     return new MessageResponse([
                         'id' => $message->getData()['id'] ?? 'message-123',
