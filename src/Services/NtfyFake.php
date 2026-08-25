@@ -19,19 +19,16 @@ class NtfyFake extends Ntfy
     /**
      * Create a new fake instance.
      */
-    public function __construct(
-        public readonly ServerInfo $defaultServerInfo,
-    ) {
+    public function __construct()
+    {
         $this->messages = collect();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function send(Message $message, ?ServerInfo $serverInfo = null): MessageResponse
+    public function send(Message $message, ServerInfo $serverInfo): MessageResponse
     {
-        $serverInfo = $serverInfo ?? $this->defaultServerInfo;
-
         $this->assignTopic($message, $serverInfo);
 
         $this->messages->push($message);

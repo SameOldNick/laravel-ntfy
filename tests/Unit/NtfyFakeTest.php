@@ -21,9 +21,7 @@ class NtfyFakeTest extends TestCase
     {
         parent::setUp();
 
-        $this->fake = new NtfyFake(ServerInfo::createWithoutAuth(
-            url: 'https://ntfy.example.com',
-        ));
+        $this->fake = new NtfyFake;
     }
 
     /**
@@ -36,7 +34,7 @@ class NtfyFakeTest extends TestCase
         $message->title('Test Message');
         $message->body('Test body');
 
-        $response = $this->fake->send($message);
+        $response = $this->fake->send($message, ServerInfo::fromConfig());
 
         $this->assertInstanceOf(MessageResponse::class, $response);
         $this->assertEquals('test-topic', $response->topic());
@@ -56,8 +54,8 @@ class NtfyFakeTest extends TestCase
         $message2 = new Message;
         $message2->topic('topic2');
 
-        $this->fake->send($message1);
-        $this->fake->send($message2);
+        $this->fake->send($message1, ServerInfo::fromConfig());
+        $this->fake->send($message2, ServerInfo::fromConfig());
 
         $sent = $this->fake->sent();
 
@@ -77,8 +75,8 @@ class NtfyFakeTest extends TestCase
         $message2->topic('topic2');
         $message2->title('Message 2');
 
-        $this->fake->send($message1);
-        $this->fake->send($message2);
+        $this->fake->send($message1, ServerInfo::fromConfig());
+        $this->fake->send($message2, ServerInfo::fromConfig());
 
         $sent = $this->fake->sent();
 
@@ -98,8 +96,8 @@ class NtfyFakeTest extends TestCase
         $message2 = new Message;
         $message2->topic('notifications');
 
-        $this->fake->send($message1);
-        $this->fake->send($message2);
+        $this->fake->send($message1, ServerInfo::fromConfig());
+        $this->fake->send($message2, ServerInfo::fromConfig());
 
         // Test without callback first
         $all = $this->fake->sent();
@@ -124,7 +122,7 @@ class NtfyFakeTest extends TestCase
         $message->topic('test-topic');
         $message->title('Test');
 
-        $this->fake->send($message);
+        $this->fake->send($message, ServerInfo::fromConfig());
 
         // Should not throw
         $this->fake->assertSent();
@@ -151,7 +149,7 @@ class NtfyFakeTest extends TestCase
         $message->topic('alerts');
         $message->priority(5);
 
-        $this->fake->send($message);
+        $this->fake->send($message, ServerInfo::fromConfig());
 
         // Should not throw
         $this->fake->assertSent(function ($message) {
@@ -170,7 +168,7 @@ class NtfyFakeTest extends TestCase
         $message->topic('notifications');
         $message->title('Test notification');
 
-        $this->fake->send($message);
+        $this->fake->send($message, ServerInfo::fromConfig());
 
         $this->expectException(AssertionFailedError::class);
 
@@ -204,7 +202,7 @@ class NtfyFakeTest extends TestCase
         $message = new Message;
         $message->topic('test');
 
-        $this->fake->send($message);
+        $this->fake->send($message, ServerInfo::fromConfig());
 
         $this->expectException(AssertionFailedError::class);
 
@@ -224,8 +222,8 @@ class NtfyFakeTest extends TestCase
         $message2->topic('topic2');
         $message2->title('Message 2');
 
-        $this->fake->send($message1);
-        $this->fake->send($message2);
+        $this->fake->send($message1, ServerInfo::fromConfig());
+        $this->fake->send($message2, ServerInfo::fromConfig());
 
         // Should not throw - no message with priority 5
         $this->fake->assertNotSent(function ($message) {
@@ -245,7 +243,7 @@ class NtfyFakeTest extends TestCase
         $message = new Message;
         $message->topic('alerts');
 
-        $this->fake->send($message);
+        $this->fake->send($message, ServerInfo::fromConfig());
 
         $this->expectException(AssertionFailedError::class);
 
@@ -268,9 +266,9 @@ class NtfyFakeTest extends TestCase
         $message3 = new Message;
         $message3->topic('test3');
 
-        $this->fake->send($message1);
-        $this->fake->send($message2);
-        $this->fake->send($message3);
+        $this->fake->send($message1, ServerInfo::fromConfig());
+        $this->fake->send($message2, ServerInfo::fromConfig());
+        $this->fake->send($message3, ServerInfo::fromConfig());
 
         // Should not throw
         $this->fake->assertSentCount(3);
@@ -289,8 +287,8 @@ class NtfyFakeTest extends TestCase
         $message2 = new Message;
         $message2->topic('test2');
 
-        $this->fake->send($message1);
-        $this->fake->send($message2);
+        $this->fake->send($message1, ServerInfo::fromConfig());
+        $this->fake->send($message2, ServerInfo::fromConfig());
 
         $this->expectException(AssertionFailedError::class);
 
@@ -315,7 +313,7 @@ class NtfyFakeTest extends TestCase
     {
         $message = new Message;
         $message->topic('test');
-        $this->fake->send($message);
+        $this->fake->send($message, ServerInfo::fromConfig());
 
         $this->expectException(AssertionFailedError::class);
 
@@ -333,7 +331,7 @@ class NtfyFakeTest extends TestCase
         $message->body('Test body');
         $message->priority(4);
 
-        $response = $this->fake->send($message);
+        $response = $this->fake->send($message, ServerInfo::fromConfig());
 
         $this->assertEquals('test-topic', $response->topic());
         $this->assertEquals('Test Title', $response->title());
@@ -349,7 +347,7 @@ class NtfyFakeTest extends TestCase
         $message = new Message;
         $message->topic('test');
 
-        $response = $this->fake->send($message);
+        $response = $this->fake->send($message, ServerInfo::fromConfig());
 
         $this->assertNotNull($response->time());
         $this->assertIsInt($response->time());
@@ -366,8 +364,8 @@ class NtfyFakeTest extends TestCase
         $message2 = new Message;
         $message2->topic('test');
 
-        $response1 = $this->fake->send($message1);
-        $response2 = $this->fake->send($message2);
+        $response1 = $this->fake->send($message1, ServerInfo::fromConfig());
+        $response2 = $this->fake->send($message2, ServerInfo::fromConfig());
 
         $this->assertNotNull($response1->id());
         $this->assertNotNull($response2->id());
@@ -390,8 +388,8 @@ class NtfyFakeTest extends TestCase
         $message2->title('Notification 1');
         $message2->priority(1);
 
-        $this->fake->send($message1);
-        $this->fake->send($message2);
+        $this->fake->send($message1, ServerInfo::fromConfig());
+        $this->fake->send($message2, ServerInfo::fromConfig());
 
         // Assert messages sent
         $this->fake->assertSentCount(2);
