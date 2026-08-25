@@ -18,7 +18,7 @@ class ServerInfo
         public readonly ?string $authPassword = null,
         public readonly ?string $authToken = null,
         public readonly ?string $topic = null,
-        public readonly ?array $options = null,
+        public readonly ?array $httpOptions = null,
     ) {
         //
     }
@@ -44,46 +44,46 @@ class ServerInfo
             authPassword: $array['auth_password'] ?? null,
             authToken: $array['auth_token'] ?? null,
             topic: $array['topic'] ?? null,
-            options: $array['options'] ?? null,
+            httpOptions: $array['http'] ?? null,
         );
     }
 
     /**
      * Create ServerInfo with username and password authentication.
      */
-    public static function createWithAuth(string $url, string $username, string $password, ?string $topic = null, ?array $options = null): self
+    public static function createWithAuth(string $url, string $username, string $password, ?string $topic = null, ?array $http = null): self
     {
         return new self(
             url: $url,
             authUsername: $username,
             authPassword: $password,
             topic: $topic,
-            options: $options,
+            httpOptions: $http,
         );
     }
 
     /**
      * Create ServerInfo with token authentication.
      */
-    public static function createWithToken(string $url, string $token, ?string $topic = null, ?array $options = null): self
+    public static function createWithToken(string $url, string $token, ?string $topic = null, ?array $http = null): self
     {
         return new self(
             url: $url,
             authToken: $token,
             topic: $topic,
-            options: $options,
+            httpOptions: $http,
         );
     }
 
     /**
      * Create ServerInfo without authentication.
      */
-    public static function createWithoutAuth(string $url, ?string $topic = null, ?array $options = null): self
+    public static function createWithoutAuth(string $url, ?string $topic = null, ?array $http = null): self
     {
         return new self(
             url: $url,
             topic: $topic,
-            options: $options,
+            httpOptions: $http,
         );
     }
 }

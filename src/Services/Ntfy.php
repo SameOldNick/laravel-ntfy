@@ -84,7 +84,7 @@ class Ntfy
      */
     protected function getHttpOptions(ServerInfo $serverInfo): array
     {
-        $serverOptions = $serverInfo->options ?? [];
+        $serverOptions = $serverInfo->httpOptions ?? [];
         $globalOptions = config('ntfy.http', []);
 
         return array_merge($globalOptions, $serverOptions);
