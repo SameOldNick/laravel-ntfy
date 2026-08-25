@@ -26,16 +26,11 @@ class ServerInfo
     /**
      * Create a ServerInfo instance from configuration.
      */
-    public static function fromConfig(?array $options = null): self
+    public static function fromConfig(): self
     {
-        return new self(
-            url: config('ntfy.server_url', 'https://ntfy.sh/'),
-            authUsername: config('ntfy.auth_credentials.username'),
-            authPassword: config('ntfy.auth_credentials.password'),
-            authToken: config('ntfy.auth_token'),
-            topic: config('ntfy.default_topic'),
-            options: $options,
-        );
+        $config = config('ntfy.global', []);
+
+        return self::fromArray(array_merge($config));
     }
 
     /**
