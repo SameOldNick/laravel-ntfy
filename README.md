@@ -2,6 +2,7 @@
 
 [![Packagist](https://img.shields.io/packagist/v/sameoldnick/laravel-ntfy)](https://packagist.org/packages/sameoldnick/laravel-ntfy)
 [![codecov](https://codecov.io/gh/SameOldNick/laravel-ntfy/graph/badge.svg?token=FnWsyYNQZZ)](https://codecov.io/gh/SameOldNick/laravel-ntfy)
+[![Tests](https://github.com/SameOldNick/laravel-ntfy/actions/workflows/tests.yml/badge.svg)](https://github.com/SameOldNick/laravel-ntfy/actions/workflows/tests.yml)
 
 A Laravel package for sending [ntfy](https://ntfy.sh/) push notifications. It provides a native Laravel notification channel and a standalone service, built on the [Ntfy PHP Library](https://github.com/VerifiedJoseph/ntfy-php-library).
 
