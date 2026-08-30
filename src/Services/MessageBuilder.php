@@ -22,6 +22,8 @@ class MessageBuilder
 
     protected ?string $attachmentContent = null;
 
+    protected ?string $attachmentFilename = null;
+
     /**
      * Create a new builder instance.
      */
@@ -141,10 +143,11 @@ class MessageBuilder
     /**
      * Attach a local file to the message.
      */
-    public function attachStorage(string $path, ?string $disk = null): self
+    public function attachStorage(string $path, ?string $disk = null, ?string $filename = null): self
     {
         $this->attachmentPath = $path;
         $this->attachmentDisk = $disk;
+        $this->attachmentFilename = $filename;
 
         return $this;
     }
@@ -152,9 +155,10 @@ class MessageBuilder
     /**
      * Attach raw content to the message.
      */
-    public function attachContent(string $content): self
+    public function attachContent(string $content, ?string $filename = null): self
     {
         $this->attachmentContent = $content;
+        $this->attachmentFilename = $filename;
 
         return $this;
     }
@@ -166,6 +170,8 @@ class MessageBuilder
     {
         $this->attachmentPath = null;
         $this->attachmentContent = null;
+        $this->attachmentDisk = null;
+        $this->attachmentFilename = null;
 
         return $this;
     }
@@ -213,6 +219,7 @@ class MessageBuilder
                 $this->attachmentPath,
                 $this->attachmentDisk,
                 $this->attachmentContent,
+                $this->attachmentFilename,
             );
         }
 

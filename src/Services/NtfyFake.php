@@ -50,6 +50,7 @@ class NtfyFake extends Ntfy
                 'path' => $message->path,
                 'disk' => $message->disk,
                 'content' => $message->content,
+                'filename' => $message->filename,
             ] : null,
         ]);
     }

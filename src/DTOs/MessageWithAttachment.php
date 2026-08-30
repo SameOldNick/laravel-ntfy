@@ -17,6 +17,7 @@ final class MessageWithAttachment
         public readonly ?string $path,
         public readonly ?string $disk,
         public readonly ?string $content,
+        public readonly ?string $filename,
     ) {
         //
     }
