@@ -128,7 +128,7 @@ class User extends Authenticatable
             // 'auth_token' => 'tk_...',
 
             // Per-user HTTP options (overrides the 'ntfy.http' config):
-            // 'options' => [],
+            // 'http' => [],
         ];
     }
 }
