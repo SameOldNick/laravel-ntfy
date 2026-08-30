@@ -39,6 +39,9 @@ trait NtfyNotifiable
 
     /**
      * Resolve the ntfy destination for this notifiable.
+     *
+     * @param  mixed  $default  The default value to return if no configuration is found. Can be a callback or an array.
+     * @return ServerInfo|null
      */
     protected function resolveNtfyRoute($default = null)
     {
@@ -62,6 +65,6 @@ trait NtfyNotifiable
             };
         }
 
-        return value($default);
+        return value($default, $this);
     }
 }
