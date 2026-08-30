@@ -142,6 +142,10 @@ class MessageBuilder
 
     /**
      * Attach a local file to the message.
+     *
+     * @param  string  $path  The path to the local file.
+     * @param  string|null  $disk  The disk to use for the file.
+     * @param  string|null  $filename  The filename to use for the attachment.
      */
     public function attachStorage(string $path, ?string $disk = null, ?string $filename = null): self
     {
@@ -153,7 +157,20 @@ class MessageBuilder
     }
 
     /**
+     * Attach a local file to the message by reading its content.
+     */
+    public function attachFile(string $path, ?string $filename = null): self
+    {
+        $content = file_get_contents($path);
+
+        return $this->attachContent($content, $filename);
+    }
+
+    /**
      * Attach raw content to the message.
+     *
+     * @param  string  $content  The raw content to attach.
+     * @param  string|null  $filename  The filename to use for the attachment.
      */
     public function attachContent(string $content, ?string $filename = null): self
     {
