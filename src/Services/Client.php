@@ -65,7 +65,10 @@ class Client
         unset($data['topic']);
 
         $headers = $this->messageDataToHeaders($data);
-        $headers['X-Filename'] = $this->getAttachmentFilename($message);
+
+        if ($filename = $this->getAttachmentFilename($message)) {
+            $headers['X-Filename'] = $filename;
+        }
 
         $client = $this->createHttpClient()
             ->withHeaders($headers)
@@ -77,7 +80,7 @@ class Client
     /**
      * Get the filename to send in the Filename header for an attachment.
      */
-    protected function getAttachmentFilename(MessageWithAttachment $message): string
+    protected function getAttachmentFilename(MessageWithAttachment $message): ?string
     {
         if ($message->filename !== null) {
             return $message->filename;
@@ -87,7 +90,7 @@ class Client
             return basename($message->path);
         }
 
-        return 'message.txt';
+        return null;
     }
 
     /**
