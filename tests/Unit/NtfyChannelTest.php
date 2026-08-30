@@ -511,6 +511,146 @@ class NtfyChannelTest extends TestCase
     }
 
     /**
+     * Test channel routes to ntfy notifiable with default value array.
+     */
+    public function test_channel_routes_to_ntfy_notifable_default_value_array(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $notifiable = new class extends Model
+        {
+            use NtfyNotifiable;
+
+            public function routeNotificationFor($channel, $notification)
+            {
+                return match ($channel) {
+                    'ntfy' => $this->resolveNtfyRoute([
+                        'server_url' => 'https://custom.ntfy.sh/',
+                        'auth_username' => 'custom-username',
+                        'auth_password' => 'custom-password',
+                        'topic' => 'custom-topic',
+                    ]),
+                    default => null,
+                };
+            }
+        };
+
+        $notification = new class extends Notification implements NtfyNotification
+        {
+            public function toNtfy(object $notifiable): Message
+            {
+                $message = new Message;
+                $message->title('Test');
+
+                return $message;
+            }
+        };
+
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
+
+        $this->ntfyMock
+            ->shouldReceive('sendRequest')
+            ->once()
+            ->passthru();
+
+        $this->ntfyMock
+            ->shouldReceive('createClient')
+            ->once()
+            ->with(Mockery::on(function ($serverInfo) {
+                return $serverInfo instanceof ServerInfo &&
+                       $serverInfo->url === 'https://custom.ntfy.sh/' &&
+                       $serverInfo->authUsername === 'custom-username' &&
+                       $serverInfo->authPassword === 'custom-password' &&
+                       $serverInfo->topic === 'custom-topic';
+            }))
+            ->andReturn(
+                Mockery::mock(Client::class)
+                    ->makePartial()
+                    ->shouldReceive('send')
+                    ->once()
+                    ->with(Mockery::on(function ($message) {
+                        return $message instanceof Message &&
+                               $message->getData()['title'] === 'Test' &&
+                               $message->getData()['topic'] === 'custom-topic';
+                    }))
+                    ->andReturn($response)
+                    ->getMock(),
+            );
+
+        $this->channel->send($notifiable, $notification);
+    }
+
+    /**
+     * Test channel routes to ntfy notifiable with default value callback.
+     */
+    public function test_channel_routes_to_ntfy_notifable_default_value_callback(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $notifiable = new class extends Model
+        {
+            use NtfyNotifiable;
+
+            public function routeNotificationFor($channel, $notification)
+            {
+                return match ($channel) {
+                    'ntfy' => $this->resolveNtfyRoute(fn ($notifiable) => [
+                        'server_url' => 'https://custom.ntfy.sh/',
+                        'auth_username' => $this->getKey(),
+                        'auth_password' => 'custom-password',
+                        'topic' => 'custom-topic',
+                    ]),
+                    default => null,
+                };
+            }
+        };
+
+        $notification = new class extends Notification implements NtfyNotification
+        {
+            public function toNtfy(object $notifiable): Message
+            {
+                $message = new Message;
+                $message->title('Test');
+
+                return $message;
+            }
+        };
+
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
+
+        $this->ntfyMock
+            ->shouldReceive('sendRequest')
+            ->once()
+            ->passthru();
+
+        $this->ntfyMock
+            ->shouldReceive('createClient')
+            ->once()
+            ->with(Mockery::on(function ($serverInfo) use ($notifiable) {
+                return $serverInfo instanceof ServerInfo &&
+                       $serverInfo->url === 'https://custom.ntfy.sh/' &&
+                       $serverInfo->authUsername === $notifiable->getKey() &&
+                       $serverInfo->authPassword === 'custom-password' &&
+                       $serverInfo->topic === 'custom-topic';
+            }))
+            ->andReturn(
+                Mockery::mock(Client::class)
+                    ->makePartial()
+                    ->shouldReceive('send')
+                    ->once()
+                    ->with(Mockery::on(function ($message) {
+                        return $message instanceof Message &&
+                               $message->getData()['title'] === 'Test' &&
+                               $message->getData()['topic'] === 'custom-topic';
+                    }))
+                    ->andReturn($response)
+                    ->getMock(),
+            );
+
+        $this->channel->send($notifiable, $notification);
+    }
+
+    /**
      * Test channel routes to notifiable with no auth.
      */
     public function test_channel_routes_to_ntfy_notifable_no_auth(): void
