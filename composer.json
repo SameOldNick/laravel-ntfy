@@ -63,6 +63,7 @@
     "format": "vendor/bin/pint",
     "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
     "build": "@php vendor/bin/testbench workbench:build --ansi",
+    "artisan": "@php vendor/bin/testbench --ansi",
     "serve": [
       "Composer\\Config::disableProcessTimeout",
       "@build",
