@@ -261,12 +261,48 @@ $message = MessageBuilder::make()
     ->click('https://example.com')   // URL opened when the notification is clicked
     ->icon('https://example.com/icon.png')
     ->schedule('10m')        // delay delivery, e.g. "30s", "1h", "1d"
-    ->attach('https://example.com/file.pdf', 'report.pdf')
+    ->attachURL('https://example.com/file.pdf', 'report.pdf')
     ->email('ops@example.com')
     ->build();
 ```
 
 Any other method on `Ntfy\Message` can be called directly thanks to method forwarding.
+
+### Sending attachments
+
+`MessageBuilder` can attach files to a message. When an attachment is present, `build()` returns a `MessageWithAttachment` (instead of a plain `Message`) and the message is sent as a binary publish with the attachment as the request body.
+
+```php
+use SameOldNick\Ntfy\Services\MessageBuilder;
+
+// Attach a file from a Laravel filesystem disk.
+$message = MessageBuilder::make()
+    ->title('Report ready')
+    ->attachStorage('reports/july.pdf', disk: 's3', filename: 'july-report.pdf')
+    ->build();
+
+// Attach a local file by reading its contents directly.
+$message = MessageBuilder::make()
+    ->title('Report ready')
+    ->attachFile('/tmp/report.pdf', 'report.pdf')
+    ->build();
+
+// Attach raw content.
+$message = MessageBuilder::make()
+    ->title('Build log')
+    ->attachContent($logOutput, 'build.log')
+    ->build();
+
+// Attach a file hosted at a URL (ntfy fetches it).
+$message = MessageBuilder::make()
+    ->title('Report ready')
+    ->attachURL('https://example.com/file.pdf', 'report.pdf')
+    ->build();
+```
+
+Call `removeAttachment()` to detach a previously attached file or content before calling `build()`.
+
+Attachments work in notifications too — return the result of `build()` from `toNtfy()`. When you do, type `toNtfy()` to return `Message|MessageWithAttachment`.
 
 ## Testing
 
