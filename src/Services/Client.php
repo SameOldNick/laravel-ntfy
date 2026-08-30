@@ -79,6 +79,10 @@ class Client
      */
     protected function getAttachmentFilename(MessageWithAttachment $message): string
     {
+        if ($message->filename !== null) {
+            return $message->filename;
+        }
+
         if ($message->path !== null) {
             return basename($message->path);
         }
