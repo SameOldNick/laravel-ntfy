@@ -250,6 +250,76 @@ class MessageBuilderTest extends TestCase
     }
 
     /**
+     * Test builder attaches a local file by reading its contents.
+     */
+    public function test_builder_attach_file_returns_message_with_attachment(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'ntfy-');
+        file_put_contents($path, 'Sample file content');
+
+        $message = MessageBuilder::make()
+            ->topic('test')
+            ->attachFile($path, 'custom-name.txt')
+            ->build();
+
+        $this->assertInstanceOf(MessageWithAttachment::class, $message);
+        $this->assertEquals('Sample file content', $message->content);
+        $this->assertEquals('custom-name.txt', $message->filename);
+
+        unlink($path);
+    }
+
+    /**
+     * Test builder remove attachment returns plain message.
+     */
+    public function test_builder_remove_attachment_returns_plain_message(): void
+    {
+        $fromContent = MessageBuilder::make()
+            ->topic('test')
+            ->attachContent('Sample content')
+            ->removeAttachment()
+            ->build();
+
+        $this->assertInstanceOf(Message::class, $fromContent);
+
+        $fromStorage = MessageBuilder::make()
+            ->topic('test')
+            ->attachStorage('file.txt', 'local')
+            ->removeAttachment()
+            ->build();
+
+        $this->assertInstanceOf(Message::class, $fromStorage);
+    }
+
+    /**
+     * Test builder stores custom filename when attaching content.
+     */
+    public function test_builder_attach_content_with_filename(): void
+    {
+        $message = MessageBuilder::make()
+            ->topic('test')
+            ->attachContent('Sample content', 'report.txt')
+            ->build();
+
+        $this->assertInstanceOf(MessageWithAttachment::class, $message);
+        $this->assertEquals('report.txt', $message->filename);
+    }
+
+    /**
+     * Test builder stores custom filename when attaching storage file.
+     */
+    public function test_builder_attach_storage_with_filename(): void
+    {
+        $message = MessageBuilder::make()
+            ->topic('test')
+            ->attachStorage('reports/july.pdf', 'local', 'july-report.pdf')
+            ->build();
+
+        $this->assertInstanceOf(MessageWithAttachment::class, $message);
+        $this->assertEquals('july-report.pdf', $message->filename);
+    }
+
+    /**
      * Test builder reset clears message.
      */
     public function test_builder_reset_clears_message(): void

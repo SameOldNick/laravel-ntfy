@@ -95,6 +95,22 @@ class NtfyFakeTest extends TestCase
     }
 
     /**
+     * Test fake records the attachment filename.
+     */
+    public function test_fake_records_attachment_filename(): void
+    {
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->attachContent('Sample attachment content', 'report.txt')
+            ->build();
+
+        $response = $this->fake->send($message, ServerInfo::fromConfig());
+
+        $this->assertInstanceOf(FakeMessageResponse::class, $response);
+        $this->assertEquals('report.txt', $response->attachment()['filename']);
+    }
+
+    /**
      * Test fake tracks sent messages.
      */
     public function test_fake_tracks_sent_messages(): void

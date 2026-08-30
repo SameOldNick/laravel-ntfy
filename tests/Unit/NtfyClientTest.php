@@ -7,10 +7,12 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 use Ntfy\Auth\Token;
 use Ntfy\Auth\User;
 use Ntfy\Message;
 use Ntfy\Server;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\Services\Client;
 use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Tests\TestCase;
@@ -139,6 +141,147 @@ class NtfyClientTest extends TestCase
         $this->assertEquals('message-123', $response->json('id'));
         $this->assertEquals('test-topic', $response->json('topic'));
         $this->assertEquals('Sample attachment content', $response->json('attachment'));
+    }
+
+    /**
+     * Test client sends X-Filename header from an explicit filename.
+     */
+    public function test_client_sends_message_with_explicit_filename_header(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => Http::response(['id' => 'msg-filename'], 200),
+        ]);
+
+        $client = new Client(new Server('https://ntfy.sh/'));
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->attachContent('Sample content', 'report.txt')
+            ->build();
+
+        $client->send($message);
+
+        Http::assertSent(function (Request $request) {
+            return $request->method() === 'PUT'
+                && $request->url() === 'https://ntfy.sh/test-topic'
+                && $request->hasHeader('X-Filename', 'report.txt');
+        });
+    }
+
+    /**
+     * Test client derives X-Filename header from the storage path basename.
+     */
+    public function test_client_sends_filename_header_from_path_basename(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('reports/july.pdf', 'PDF content');
+
+        Http::fake([
+            'https://ntfy.sh/*' => Http::response(['id' => 'msg-basename'], 200),
+        ]);
+
+        $client = new Client(new Server('https://ntfy.sh/'));
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->attachStorage('reports/july.pdf', 'local')
+            ->build();
+
+        $client->send($message);
+
+        Http::assertSent(function (Request $request) {
+            return $request->method() === 'PUT'
+                && $request->url() === 'https://ntfy.sh/test-topic'
+                && $request->hasHeader('X-Filename', 'july.pdf');
+        });
+    }
+
+    /**
+     * Test client skips X-Filename header when attachment has no filename.
+     */
+    public function test_client_skips_filename_header_when_no_filename(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => Http::response(['id' => 'msg-no-filename'], 200),
+        ]);
+
+        $client = new Client(new Server('https://ntfy.sh/'));
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->attachContent('Sample content')
+            ->build();
+
+        $client->send($message);
+
+        Http::assertSent(function (Request $request) {
+            return $request->method() === 'PUT'
+                && ! $request->hasHeader('X-Filename');
+        });
+    }
+
+    /**
+     * Test client maps message data to publish headers for attachments.
+     */
+    public function test_client_maps_message_data_to_publish_headers(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => Http::response(['id' => 'msg-headers'], 200),
+        ]);
+
+        $client = new Client(new Server('https://ntfy.sh/'));
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->title('Test Title')
+            ->body('Test Body')
+            ->priority(4)
+            ->tags(['warning', 'alert'])
+            ->click('https://example.com')
+            ->icon('https://example.com/icon.png')
+            ->schedule('10m')
+            ->email('ops@example.com')
+            ->disableCaching()
+            ->disableFirebase()
+            ->attachContent('Sample content')
+            ->build();
+
+        $client->send($message);
+
+        Http::assertSent(function (Request $request) {
+            return $request->method() === 'PUT'
+                && $request->hasHeader('X-Title', 'Test Title')
+                && $request->hasHeader('X-Message', 'Test Body')
+                && $request->hasHeader('X-Priority', '4')
+                && $request->hasHeader('X-Tags', 'warning,alert')
+                && $request->hasHeader('X-Click', 'https://example.com')
+                && $request->hasHeader('X-Icon', 'https://example.com/icon.png')
+                && $request->hasHeader('X-Delay', '10m')
+                && $request->hasHeader('X-Email', 'ops@example.com')
+                && $request->hasHeader('X-Cache', 'no')
+                && $request->hasHeader('X-Firebase', 'no');
+        });
+    }
+
+    /**
+     * Test client throws InvalidArgumentException when attachment has no content or path.
+     */
+    public function test_client_throws_invalid_argument_when_attachment_has_no_content_or_path(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => Http::response(['id' => 'msg-invalid'], 200),
+        ]);
+
+        $client = new Client(new Server('https://ntfy.sh/'));
+
+        $message = new Message;
+        $message->topic('test-topic');
+
+        $attachment = new MessageWithAttachment($message, null, null, null, null);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $client->send($attachment);
     }
 
     /**

@@ -211,6 +211,28 @@ class NtfyServiceTest extends TestCase
     }
 
     /**
+     * Test that default topic is assigned to a message with an attachment.
+     */
+    public function test_server_info_topic_is_assigned_to_message_with_attachment(): void
+    {
+        NtfyFacade::fake();
+
+        $message = MessageBuilder::make()
+            ->title('Test')
+            ->attachContent('Sample attachment content')
+            ->build();
+
+        $result = NtfyFacade::send($message, ServerInfo::fromArray([
+            'server_url' => 'https://ntfy.example.com/',
+            'topic' => 'topic-from-server-info',
+        ]));
+
+        $this->assertInstanceOf(FakeMessageResponse::class, $result);
+        $this->assertEquals('Test', $result->title());
+        $this->assertEquals('topic-from-server-info', $result->topic());
+    }
+
+    /**
      * Test that default topic is assigned when not set.
      */
     public function test_server_info_topic_is_assigned(): void
