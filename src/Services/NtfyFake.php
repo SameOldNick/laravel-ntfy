@@ -5,7 +5,9 @@ namespace SameOldNick\Ntfy\Services;
 use Illuminate\Support\Collection;
 use Ntfy\Message;
 use PHPUnit\Framework\Assert as PHPUnit;
+use SameOldNick\Ntfy\DTOs\FakeMessageResponse;
 use SameOldNick\Ntfy\DTOs\MessageResponse;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 
 /**
@@ -13,7 +15,7 @@ use SameOldNick\Ntfy\DTOs\ServerInfo;
  */
 class NtfyFake extends Ntfy
 {
-    /** @var Collection<int, Message> */
+    /** @var Collection<int, Message|MessageWithAttachment> */
     protected Collection $messages;
 
     /**
@@ -27,21 +29,28 @@ class NtfyFake extends Ntfy
     /**
      * {@inheritDoc}
      */
-    public function send(Message $message, ServerInfo $serverInfo): MessageResponse
+    public function send(Message|MessageWithAttachment $message, ServerInfo $serverInfo): MessageResponse
     {
         $this->assignTopic($message, $serverInfo);
 
         $this->messages->push($message);
 
-        $data = $message->getData();
+        $data = $message instanceof MessageWithAttachment
+            ? $message->message->getData()
+            : $message->getData();
 
-        return new MessageResponse([
+        return new FakeMessageResponse([
             'topic' => $data['topic'] ?? null,
             'title' => $data['title'] ?? null,
             'message' => $data['message'] ?? null,
             'priority' => $data['priority'] ?? null,
             'time' => (string) time(),
             'id' => uniqid('fake-message-', true),
+            'attachment' => $message instanceof MessageWithAttachment ? [
+                'path' => $message->path,
+                'disk' => $message->disk,
+                'content' => $message->content,
+            ] : null,
         ]);
     }
 
@@ -86,7 +95,7 @@ class NtfyFake extends Ntfy
     /**
      * Get all sent messages matching a callback.
      *
-     * @return Collection<int, Message>
+     * @return Collection<int, Message|MessageWithAttachment>
      */
     public function sent(?callable $callback = null): Collection
     {

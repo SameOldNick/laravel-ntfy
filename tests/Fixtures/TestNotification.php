@@ -5,9 +5,11 @@ namespace SameOldNick\Ntfy\Tests\Fixtures;
 use Closure;
 use Illuminate\Notifications\Notification;
 use Ntfy\Message as NtfyMessage;
+use SameOldNick\Ntfy\Contracts\NtfyNotification;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\Services\MessageBuilder;
 
-class TestNotification extends Notification
+class TestNotification extends Notification implements NtfyNotification
 {
     /**
      * Create a new notification instance.
@@ -34,9 +36,9 @@ class TestNotification extends Notification
     }
 
     /**
-     * Create an ntfy message representation of the notification.
+     * Convert the notification to an ntfy Message.
      */
-    public function toNtfy($notifiable): NtfyMessage
+    public function toNtfy(object $notifiable): NtfyMessage|MessageWithAttachment
     {
         $builder = MessageBuilder::make()
             ->title($this->title)

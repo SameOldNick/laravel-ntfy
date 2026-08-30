@@ -7,6 +7,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Ntfy\Message;
 use SameOldNick\Ntfy\Contracts\NtfyNotification;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Services\Ntfy;
 
@@ -37,7 +38,7 @@ class NtfyChannel
 
         $message = $this->toMessage($notifiable, $notification);
 
-        if (! $message instanceof Message) {
+        if (! ($message instanceof Message || $message instanceof MessageWithAttachment)) {
             // Notification doesn't have a toNtfy method or doesn't implement NtfyNotification contract
             Log::warning('NtfyChannel: Notification does not implement NtfyNotification contract or have a toNtfy method. Skipping notification.', [
                 'notifiable' => $notifiable,
@@ -77,7 +78,7 @@ class NtfyChannel
     /**
      * Get the ntfy message for the given notifiable.
      *
-     * @return Message|null
+     * @return Message|MessageWithAttachment|null
      */
     protected function toMessage(object $notifiable, Notification $notification)
     {

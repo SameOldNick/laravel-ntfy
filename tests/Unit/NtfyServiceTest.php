@@ -5,15 +5,19 @@ namespace SameOldNick\Ntfy\Tests\Unit;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Mockery\MockInterface;
 use Ntfy\Exception\EndpointException;
 use Ntfy\Exception\NtfyException;
 use Ntfy\Message;
+use SameOldNick\Ntfy\DTOs\FakeMessageResponse;
 use SameOldNick\Ntfy\DTOs\MessageResponse;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Facades\Ntfy as NtfyFacade;
 use SameOldNick\Ntfy\Services\Client;
+use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Services\Ntfy;
 use SameOldNick\Ntfy\Tests\TestCase;
 
@@ -156,6 +160,57 @@ class NtfyServiceTest extends TestCase
     }
 
     /**
+     * Test that Ntfy sends a message with an attachment via the client.
+     */
+    public function test_ntfy_sends_message_with_storage_attachment(): void
+    {
+        Storage::fake('local');
+
+        Storage::disk('local')->put('test-attachment.txt', 'Sample attachment content');
+
+        $this->createMocks();
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->title('Test Title')
+            ->body('Test Body')
+            ->attachStorage('test-attachment.txt', 'local')
+            ->build();
+
+        $result = $this->ntfyMock->send($message, ServerInfo::fromConfig());
+
+        $this->assertInstanceOf(FakeMessageResponse::class, $result);
+        $this->assertEquals('message-123', $result->id());
+        $this->assertEquals('test-topic', $result->topic());
+        $this->assertEquals('test-attachment.txt', $result->attachment()['path']);
+        $this->assertEquals('local', $result->attachment()['disk']);
+        $this->assertEquals('Sample attachment content', $result->getAttachmentContent());
+    }
+
+    /**
+     * Test that Ntfy sends a message with an attachment via the client.
+     */
+    public function test_ntfy_sends_message_with_content_attachment(): void
+    {
+        $this->createMocks();
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->title('Test Title')
+            ->body('Test Body')
+            ->attachContent('Sample attachment content')
+            ->build();
+
+        $result = $this->ntfyMock->send($message, ServerInfo::fromConfig());
+
+        $this->assertInstanceOf(FakeMessageResponse::class, $result);
+        $this->assertEquals('message-123', $result->id());
+        $this->assertEquals('test-topic', $result->topic());
+        $this->assertEquals('Sample attachment content', $result->attachment()['content']);
+        $this->assertEquals('Sample attachment content', $result->getAttachmentContent());
+    }
+
+    /**
      * Test that default topic is assigned when not set.
      */
     public function test_server_info_topic_is_assigned(): void
@@ -255,16 +310,23 @@ class NtfyServiceTest extends TestCase
         if ($mockSend) {
             $this->ntfyMock
                 ->shouldReceive('send')
-                ->andReturnUsing(function (Message $message, ServerInfo $serverInfo) {
-                    $topic = $message->getData()['topic'];
+                ->andReturnUsing(function (Message|MessageWithAttachment $message, ServerInfo $serverInfo) {
+                    $data = $message instanceof MessageWithAttachment
+                        ? $message->message->getData()
+                        : $message->getData();
 
-                    return new MessageResponse([
-                        'id' => $message->getData()['id'] ?? 'message-123',
-                        'topic' => $topic,
-                        'title' => $message->getData()['title'] ?? null,
-                        'message' => $message->getData()['message'] ?? null,
-                        'priority' => $message->getData()['priority'] ?? null,
+                    return new FakeMessageResponse([
+                        'id' => $data['id'] ?? 'message-123',
+                        'topic' => $data['topic'] ?? null,
+                        'title' => $data['title'] ?? null,
+                        'message' => $data['message'] ?? null,
+                        'priority' => $data['priority'] ?? null,
                         'time' => time(),
+                        'attachment' => $message instanceof MessageWithAttachment ? [
+                            'path' => $message->path,
+                            'disk' => $message->disk,
+                            'content' => $message->content,
+                        ] : null,
                     ]);
                 });
         }

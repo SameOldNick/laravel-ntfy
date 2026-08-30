@@ -13,9 +13,11 @@ use Ntfy\Server;
 use SameOldNick\Ntfy\Channels\NtfyChannel;
 use SameOldNick\Ntfy\Concerns\NtfyNotifiable;
 use SameOldNick\Ntfy\Contracts\NtfyNotification;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Models\NtfyConfiguration;
 use SameOldNick\Ntfy\Services\Client;
+use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Services\Ntfy;
 use SameOldNick\Ntfy\Tests\TestCase;
 
@@ -171,6 +173,127 @@ class NtfyChannelTest extends TestCase
                         return $message instanceof Message &&
                                $message->getData()['title'] === 'Test' &&
                                $message->getData()['topic'] === 'custom-topic-from-notifiable';
+                    }))
+                    ->andReturn($response)
+                    ->getMock(),
+            );
+
+        $actualResponse = $this->channel->send($notifiable, $notification);
+
+        $this->assertInstanceOf(Response::class, $actualResponse);
+        $this->assertEquals('msg-456', $actualResponse->json('id'));
+    }
+
+    /**
+     * Test channel attaches content.
+     */
+    public function test_channel_attaches_content(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $notifiable = new class
+        {
+            public function routeNotificationFor($channel, $notification)
+            {
+                return ServerInfo::createWithoutAuth(
+                    url: 'https://ntfy.sh/',
+                    topic: 'custom-topic-from-notifiable',
+                );
+            }
+        };
+
+        $notification = new class extends Notification implements NtfyNotification
+        {
+            public function toNtfy(object $notifiable): Message|MessageWithAttachment
+            {
+                return MessageBuilder::make()
+                    ->title('Test')
+                    ->attachContent('Sample attachment content')
+                    ->build();
+            }
+        };
+
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
+
+        $this->ntfyMock
+            ->shouldReceive('createClient')
+            ->once()
+            ->with(Mockery::on(function ($serverInfo) {
+                return $serverInfo instanceof ServerInfo &&
+                       $serverInfo->url === 'https://ntfy.sh/' &&
+                       $serverInfo->topic === 'custom-topic-from-notifiable';
+            }))
+            ->andReturn(
+                Mockery::mock(new Client(new Server('https://ntfy.sh/')))
+                    ->makePartial()
+                    ->shouldReceive('send')
+                    ->once()
+                    ->with(Mockery::on(function ($message) {
+                        return $message instanceof MessageWithAttachment &&
+                               $message->message->getData()['title'] === 'Test' &&
+                               $message->message->getData()['topic'] === 'custom-topic-from-notifiable' &&
+                               $message->content === 'Sample attachment content';
+                    }))
+                    ->andReturn($response)
+                    ->getMock(),
+            );
+
+        $actualResponse = $this->channel->send($notifiable, $notification);
+
+        $this->assertInstanceOf(Response::class, $actualResponse);
+        $this->assertEquals('msg-456', $actualResponse->json('id'));
+    }
+
+    /**
+     * Test channel attaches storage file.
+     */
+    public function test_channel_attaches_storage_file(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $notifiable = new class
+        {
+            public function routeNotificationFor($channel, $notification)
+            {
+                return ServerInfo::createWithoutAuth(
+                    url: 'https://ntfy.sh/',
+                    topic: 'custom-topic-from-notifiable',
+                );
+            }
+        };
+
+        $notification = new class extends Notification implements NtfyNotification
+        {
+            public function toNtfy(object $notifiable): Message|MessageWithAttachment
+            {
+                return MessageBuilder::make()
+                    ->title('Test')
+                    ->attachStorage('test-attachment.txt', 'local')
+                    ->build();
+            }
+        };
+
+        $response = new Response(Http::response(['id' => 'msg-456'])->wait());
+
+        $this->ntfyMock
+            ->shouldReceive('createClient')
+            ->once()
+            ->with(Mockery::on(function ($serverInfo) {
+                return $serverInfo instanceof ServerInfo &&
+                       $serverInfo->url === 'https://ntfy.sh/' &&
+                       $serverInfo->topic === 'custom-topic-from-notifiable';
+            }))
+            ->andReturn(
+                Mockery::mock(new Client(new Server('https://ntfy.sh/')))
+                    ->makePartial()
+                    ->shouldReceive('send')
+                    ->once()
+                    ->with(Mockery::on(function ($message) {
+                        return $message instanceof MessageWithAttachment &&
+                               $message->message->getData()['title'] === 'Test' &&
+                               $message->message->getData()['topic'] === 'custom-topic-from-notifiable' &&
+                               $message->path === 'test-attachment.txt' &&
+                               $message->disk === 'local';
                     }))
                     ->andReturn($response)
                     ->getMock(),

@@ -3,10 +3,13 @@
 namespace SameOldNick\Ntfy\Tests\Unit;
 
 use Exception;
+use Illuminate\Support\Facades\Storage;
 use Ntfy\Message;
 use PHPUnit\Framework\AssertionFailedError;
+use SameOldNick\Ntfy\DTOs\FakeMessageResponse;
 use SameOldNick\Ntfy\DTOs\MessageResponse;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
+use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Services\NtfyFake;
 use SameOldNick\Ntfy\Tests\TestCase;
 
@@ -40,6 +43,54 @@ class NtfyFakeTest extends TestCase
         $this->assertEquals('test-topic', $response->topic());
         $this->assertEquals('Test Message', $response->title());
         $this->assertEquals('Test body', $response->message());
+        $this->assertNotNull($response->id());
+    }
+
+    /**
+     * Test fake sends message with attachment and returns response.
+     */
+    public function test_fake_sends_message_with_content_attachment_and_returns_response(): void
+    {
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->title('Test Message')
+            ->body('Test body')
+            ->attachContent('Sample attachment content')
+            ->build();
+
+        $response = $this->fake->send($message, ServerInfo::fromConfig());
+
+        $this->assertInstanceOf(FakeMessageResponse::class, $response);
+        $this->assertEquals('test-topic', $response->topic());
+        $this->assertEquals('Test Message', $response->title());
+        $this->assertEquals('Test body', $response->message());
+        $this->assertEquals('Sample attachment content', $response->getAttachmentContent());
+        $this->assertNotNull($response->id());
+    }
+
+    /**
+     * Test fake sends message with attachment and returns response.
+     */
+    public function test_fake_sends_message_with_storage_attachment_and_returns_response(): void
+    {
+        Storage::fake('local');
+
+        Storage::disk('local')->put('test-attachment.txt', 'Sample attachment content');
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->title('Test Message')
+            ->body('Test body')
+            ->attachStorage('test-attachment.txt', 'local')
+            ->build();
+
+        $response = $this->fake->send($message, ServerInfo::fromConfig());
+
+        $this->assertInstanceOf(FakeMessageResponse::class, $response);
+        $this->assertEquals('test-topic', $response->topic());
+        $this->assertEquals('Test Message', $response->title());
+        $this->assertEquals('Test body', $response->message());
+        $this->assertEquals('Sample attachment content', $response->getAttachmentContent());
         $this->assertNotNull($response->id());
     }
 

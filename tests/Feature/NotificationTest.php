@@ -6,6 +6,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Tests\Fixtures\TestNotification;
 use SameOldNick\Ntfy\Tests\TestCase;
@@ -107,6 +108,115 @@ class NotificationTest extends TestCase
         Http::assertSent(function (Request $request, Response $response) {
             return $response->status() === 200 &&
                     $response->json('id') === 'msg-123';
+        });
+    }
+
+    /**
+     * Test that a user is notified with a notification that has an attached content.
+     */
+    public function test_routes_notification_with_attached_file_to_user_http_success(): void
+    {
+        Http::fake([
+            'ntfy.fakeuser.com/*' => function (Request $request) {
+                if ($request->method() !== 'PUT') {
+                    return Http::response('Method Not Allowed', 405);
+                }
+
+                return Http::response([
+                    'id' => 'msg-123',
+                    'topic' => 'test-topic',
+                    'title' => 'Test Notification',
+                    'message' => 'This is a test notification.',
+                    'priority' => 3,
+                    'time' => time(),
+                    'attachment' => $request->body(),
+                ], 200);
+            },
+
+            // Stub a string response for all other endpoints...
+            '*' => function (Request $request) {
+                return Http::response('Not Found', 404);
+            },
+        ]);
+
+        $user = $this->createTestUser([
+            'server_url' => 'https://ntfy.fakeuser.com/',
+            'auth_token' => 'test-token-123',
+            'topic' => 'test-topic',
+        ]);
+
+        $contents = 'This is the content of the attachment.';
+
+        Storage::fake('local');
+        Storage::disk('local')->put('test-attachment.txt', $contents);
+
+        $notification = new TestNotification(
+            title: 'Test Notification',
+            message: 'This is a test notification.',
+            withMessageBuilder: function (MessageBuilder $builder) {
+                return $builder->attachStorage('test-attachment.txt', 'local');
+            },
+        );
+
+        $user->notifyNow($notification);
+
+        Http::assertSent(function (Request $request, Response $response) use ($contents) {
+            return $response->status() === 200 &&
+                    $response->json('id') === 'msg-123' &&
+                    $response->json('attachment') === $contents;
+        });
+    }
+
+    /**
+     * Test that a user is notified with a basic notification using an array router.
+     */
+    public function test_routes_notification_with_attached_contents_to_user_http_success(): void
+    {
+        Http::fake([
+            'ntfy.fakeuser.com/*' => function (Request $request) {
+                if ($request->method() !== 'PUT') {
+                    return Http::response('Method Not Allowed', 405);
+                }
+
+                return Http::response([
+                    'id' => 'msg-123',
+                    'topic' => 'test-topic',
+                    'title' => 'Test Notification',
+                    'message' => 'This is a test notification.',
+                    'priority' => 3,
+                    'time' => time(),
+                    'attachment' => $request->body(),
+                ], 200);
+            },
+
+            // Stub a string response for all other endpoints...
+            '*' => function (Request $request) {
+                return Http::response('Not Found', 404);
+            },
+        ]);
+
+        $user = $this->createTestUser([
+            'server_url' => 'https://ntfy.fakeuser.com/',
+            'auth_token' => 'test-token-123',
+            'topic' => 'test-topic',
+        ]);
+
+        $contents = 'This is the content of the attachment.';
+
+        $notification = new TestNotification(
+            title: 'Test Notification',
+            message: 'This is a test notification.',
+            withMessageBuilder: function (MessageBuilder $builder) use ($contents) {
+                return $builder->attachContent($contents);
+            },
+        );
+
+        $user->notifyNow($notification);
+
+        Http::assertSent(function (Request $request, Response $response) use ($contents) {
+            return $response->status() === 200 &&
+                    $response->json('id') === 'msg-123' &&
+                    $response->json('attachment') === $contents;
         });
     }
 

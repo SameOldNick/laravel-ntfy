@@ -6,11 +6,13 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Ntfy\Auth\Token;
 use Ntfy\Auth\User;
 use Ntfy\Message;
 use Ntfy\Server;
 use SameOldNick\Ntfy\Services\Client;
+use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Tests\TestCase;
 
 class NtfyClientTest extends TestCase
@@ -43,6 +45,100 @@ class NtfyClientTest extends TestCase
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals('message-123', $response->json('id'));
         $this->assertEquals('test-topic', $response->json('topic'));
+    }
+
+    /**
+     * Test client sends message with storage attachment.
+     */
+    public function test_client_sends_message_with_storage(): void
+    {
+        Storage::fake('local');
+
+        Http::fake([
+            'https://ntfy.sh/*' => function (Request $request) {
+                if ($request->method() !== 'PUT') {
+                    return Http::response('Method Not Allowed', 405);
+                }
+
+                return Http::response([
+                    'id' => 'message-123',
+                    'topic' => 'test-topic',
+                    'title' => 'Test',
+                    'message' => 'Test message',
+                    'time' => time(),
+                    'attachment' => $request->body(),
+                ], 200);
+            },
+
+            // Stub a string response for all other endpoints...
+            '*' => function (Request $request) {
+                return Http::response('Not Found', 404);
+            },
+        ]);
+
+        $server = new Server('https://ntfy.sh/');
+        $client = new Client($server);
+
+        Storage::disk('local')->put('test-attachment.txt', 'Sample attachment content');
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->title('Test')
+            ->body('Test message')
+            ->attachStorage('test-attachment.txt', 'local')
+            ->build();
+
+        $response = $client->send($message);
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals('message-123', $response->json('id'));
+        $this->assertEquals('test-topic', $response->json('topic'));
+        $this->assertEquals('Sample attachment content', $response->json('attachment'));
+    }
+
+    /**
+     * Test client sends message with content.
+     */
+    public function test_client_sends_message_with_content(): void
+    {
+        Http::fake([
+            'https://ntfy.sh/*' => function (Request $request) {
+                if ($request->method() !== 'PUT') {
+                    return Http::response('Method Not Allowed', 405);
+                }
+
+                return Http::response([
+                    'id' => 'message-123',
+                    'topic' => 'test-topic',
+                    'title' => 'Test',
+                    'message' => 'Test message',
+                    'time' => time(),
+                    'attachment' => $request->body(),
+                ], 200);
+            },
+
+            // Stub a string response for all other endpoints...
+            '*' => function (Request $request) {
+                return Http::response('Not Found', 404);
+            },
+        ]);
+
+        $server = new Server('https://ntfy.sh/');
+        $client = new Client($server);
+
+        $message = MessageBuilder::make()
+            ->topic('test-topic')
+            ->title('Test')
+            ->body('Test message')
+            ->attachContent('Sample attachment content')
+            ->build();
+
+        $response = $client->send($message);
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals('message-123', $response->json('id'));
+        $this->assertEquals('test-topic', $response->json('topic'));
+        $this->assertEquals('Sample attachment content', $response->json('attachment'));
     }
 
     /**

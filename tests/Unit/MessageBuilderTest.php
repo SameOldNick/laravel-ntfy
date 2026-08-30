@@ -3,6 +3,7 @@
 namespace SameOldNick\Ntfy\Tests\Unit;
 
 use Ntfy\Message;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Tests\TestCase;
 
@@ -177,7 +178,7 @@ class MessageBuilderTest extends TestCase
 
         $message = MessageBuilder::make()
             ->topic('test')
-            ->attach($url, $name)
+            ->attachURL($url, $name)
             ->build();
 
         $this->assertArrayHasKey('attach', $message->getData());
@@ -220,6 +221,32 @@ class MessageBuilderTest extends TestCase
             ->build();
 
         $this->assertInstanceOf(Message::class, $message);
+    }
+
+    /**
+     * Test builder build returns message with attachment instance when attaching content.
+     */
+    public function test_builder_build_attach_content_returns_message_with_attachment(): void
+    {
+        $message = MessageBuilder::make()
+            ->topic('test')
+            ->attachContent('Sample attachment content')
+            ->build();
+
+        $this->assertInstanceOf(MessageWithAttachment::class, $message);
+    }
+
+    /**
+     * Test builder build returns message with attachment instance when attaching storage file.
+     */
+    public function test_builder_build_attach_storage_returns_message_with_attachment(): void
+    {
+        $message = MessageBuilder::make()
+            ->topic('test')
+            ->attachStorage('test-attachment.txt', 'local')
+            ->build();
+
+        $this->assertInstanceOf(MessageWithAttachment::class, $message);
     }
 
     /**

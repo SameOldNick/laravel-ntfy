@@ -5,6 +5,7 @@ namespace SameOldNick\Ntfy\Services;
 use Illuminate\Support\Traits\ForwardsCalls;
 use Ntfy\Exception\NtfyException;
 use Ntfy\Message;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 
 /**
  * Fluent builder for composing ntfy Message instances.
@@ -14,6 +15,12 @@ class MessageBuilder
     use ForwardsCalls;
 
     protected Message $message;
+
+    protected ?string $attachmentPath = null;
+
+    protected ?string $attachmentDisk = null;
+
+    protected ?string $attachmentContent = null;
 
     /**
      * Create a new builder instance.
@@ -132,9 +139,41 @@ class MessageBuilder
     }
 
     /**
+     * Attach a local file to the message.
+     */
+    public function attachStorage(string $path, ?string $disk = null): self
+    {
+        $this->attachmentPath = $path;
+        $this->attachmentDisk = $disk;
+
+        return $this;
+    }
+
+    /**
+     * Attach raw content to the message.
+     */
+    public function attachContent(string $content): self
+    {
+        $this->attachmentContent = $content;
+
+        return $this;
+    }
+
+    /**
+     * Detach any previously attached file or content.
+     */
+    public function removeAttachment(): self
+    {
+        $this->attachmentPath = null;
+        $this->attachmentContent = null;
+
+        return $this;
+    }
+
+    /**
      * Attach a file via URL with an optional filename.
      */
-    public function attach(string $url, string $name = ''): self
+    public function attachURL(string $url, string $name = ''): self
     {
         $this->message->attachURL($url, $name);
 
@@ -166,8 +205,17 @@ class MessageBuilder
      *
      * @throws NtfyException if required fields are missing when retrieved
      */
-    public function build(): Message
+    public function build(): Message|MessageWithAttachment
     {
+        if ($this->attachmentPath || $this->attachmentContent) {
+            return new MessageWithAttachment(
+                $this->message,
+                $this->attachmentPath,
+                $this->attachmentDisk,
+                $this->attachmentContent,
+            );
+        }
+
         return $this->message;
     }
 

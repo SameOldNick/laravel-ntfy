@@ -12,6 +12,7 @@ use Ntfy\Exception\NtfyException;
 use Ntfy\Message;
 use Ntfy\Server;
 use SameOldNick\Ntfy\DTOs\MessageResponse;
+use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 
 class Ntfy
@@ -30,7 +31,7 @@ class Ntfy
      * @throws NtfyException
      * @throws EndpointException
      */
-    public function send(Message $message, ServerInfo $serverInfo): MessageResponse
+    public function send(Message|MessageWithAttachment $message, ServerInfo $serverInfo): MessageResponse
     {
         try {
             $response = $this->sendRequest($message, $serverInfo);
@@ -48,7 +49,7 @@ class Ntfy
      *
      * @throws ConnectionException Thrown if the request fails due to a connection error.
      */
-    public function sendRequest(Message $message, ServerInfo $serverInfo): Response
+    public function sendRequest(Message|MessageWithAttachment $message, ServerInfo $serverInfo): Response
     {
         // If message doesn't have a topic, set the default
         $this->assignTopic($message, $serverInfo);
@@ -101,12 +102,14 @@ class Ntfy
     /**
      * Assign the topic to the ServerInfo topic if set
      */
-    protected function assignTopic(Message $message, ServerInfo $serverInfo): void
+    protected function assignTopic(Message|MessageWithAttachment $message, ServerInfo $serverInfo): void
     {
-        if ($defaultTopic = $serverInfo->topic) {
-            // ServerInfo topic takes precedence over message topic, as the message may not have one set and the ServerInfo topic is required for sending
-            $message->topic($defaultTopic);
+        if (! $defaultTopic = $serverInfo->topic) {
+            return;
         }
+
+        $target = $message instanceof MessageWithAttachment ? $message->message : $message;
+        $target->topic($defaultTopic);
     }
 
     /**
