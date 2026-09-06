@@ -121,7 +121,7 @@ class Client
             }
         }
 
-        if (isset($data['tags']) && is_array($data['tags'])) {
+        if (isset($data['tags']) && is_array($data['tags']) && count($data['tags']) > 0) {
             $headers['X-Tags'] = implode(',', $data['tags']);
         }
 
@@ -129,7 +129,7 @@ class Client
             $headers['X-Markdown'] = 'yes';
         }
 
-        if (isset($data['actions']) && is_array($data['actions'])) {
+        if (isset($data['actions']) && is_array($data['actions']) && count($data['actions']) > 0) {
             $headers['X-Actions'] = json_encode($data['actions']);
         }
 
