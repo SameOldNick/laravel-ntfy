@@ -3,6 +3,7 @@
 namespace SameOldNick\Ntfy\Tests\Unit;
 
 use Illuminate\Support\Facades\DB;
+use SameOldNick\Ntfy\Enums\AuthMethod;
 use SameOldNick\Ntfy\Models\NtfyConfiguration;
 use SameOldNick\Ntfy\Tests\TestCase;
 use Workbench\App\Models\User;
@@ -19,7 +20,7 @@ class NtfyConfigurationTest extends TestCase
             'topic' => 'alerts',
         ]);
 
-        $this->assertSame('none', $config->auth_method);
+        $this->assertSame(AuthMethod::None, $config->auth_method);
     }
 
     /**
@@ -33,7 +34,7 @@ class NtfyConfigurationTest extends TestCase
             'auth_token' => 'tk_test',
         ]);
 
-        $this->assertSame('token', $config->auth_method);
+        $this->assertSame(AuthMethod::Token, $config->auth_method);
     }
 
     /**
@@ -49,7 +50,7 @@ class NtfyConfigurationTest extends TestCase
             'auth_token' => 'tk_test',
         ]);
 
-        $this->assertSame('login', $config->auth_method);
+        $this->assertSame(AuthMethod::Login, $config->auth_method);
     }
 
     /**
@@ -104,6 +105,9 @@ class NtfyConfigurationTest extends TestCase
 
     /**
      * Test auth method is appended to serialization.
+     *
+     * The appended attribute is an AuthMethod enum in the array form, while the
+     * JSON form keeps the backed string value for API consumers.
      */
     public function test_auth_method_is_appended_to_serialization(): void
     {
@@ -115,10 +119,12 @@ class NtfyConfigurationTest extends TestCase
             'auth_token' => 'tk_super_secret',
         ]);
 
-        $array = $config->fresh()->toArray();
+        $config = $config->fresh();
+        $array = $config->toArray();
 
         $this->assertArrayHasKey('auth_method', $array);
-        $this->assertSame('token', $array['auth_method']);
+        $this->assertSame(AuthMethod::Token, $array['auth_method']);
+        $this->assertSame('token', json_decode($config->toJson(), true)['auth_method']);
     }
 
     /**

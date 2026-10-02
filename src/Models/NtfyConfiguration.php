@@ -4,6 +4,8 @@ namespace SameOldNick\Ntfy\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use SameOldNick\Ntfy\DTOs\ServerInfo;
+use SameOldNick\Ntfy\Enums\AuthMethod;
 
 /**
  * @property int $id
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $auth_token
  * @property string|null $username
  * @property string|null $password
+ * @property AuthMethod $auth_method
  */
 class NtfyConfiguration extends Model
 {
@@ -70,14 +73,14 @@ class NtfyConfiguration extends Model
     /**
      * Get the authentication method based on the presence of credentials.
      *
-     * @return Attribute<string, never>
+     * @return Attribute<AuthMethod::Login|AuthMethod::None|AuthMethod::Token, never>
      */
     protected function authMethod(): Attribute
     {
-        return Attribute::get(fn (mixed $value, array $attributes) => match (true) {
-            ! empty($attributes['username']) || ! empty($attributes['password']) => 'login',
-            ! empty($attributes['auth_token']) => 'token',
-            default => 'none',
+        return Attribute::get(fn (mixed $value, array $attributes): AuthMethod => match (true) {
+            ! empty($attributes['username']) || ! empty($attributes['password']) => AuthMethod::Login,
+            ! empty($attributes['auth_token']) => AuthMethod::Token,
+            default => AuthMethod::None,
         });
     }
 }
