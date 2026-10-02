@@ -117,6 +117,40 @@ class ServerInfoTest extends TestCase
     }
 
     /**
+     * Test from array accepts an auth method enum and ignores it.
+     */
+    public function test_from_array_accepts_auth_method_enum_and_ignores_it(): void
+    {
+        $info = ServerInfo::fromArray([
+            'server_url' => 'https://ntfy.example.com/',
+            'auth_method' => AuthMethod::None,
+            'auth_token' => 'tk_test',
+        ]);
+
+        $this->assertSame(AuthMethod::Token, $info->getAuthMethod());
+        $this->assertSame('tk_test', $info->authToken);
+    }
+
+    /**
+     * Test from array accepts an auth method string and ignores it.
+     */
+    public function test_from_array_accepts_auth_method_string_and_ignores_it(): void
+    {
+        $info = ServerInfo::fromArray([
+            'server_url' => 'https://ntfy.example.com/',
+            'auth_method' => 'login',
+            'auth_username' => 'testuser',
+            'auth_password' => 'testpass',
+            'auth_token' => 'tk_test',
+        ]);
+
+        $this->assertSame(AuthMethod::Login, $info->getAuthMethod());
+        $this->assertSame('testuser', $info->authUsername);
+        $this->assertSame('testpass', $info->authPassword);
+        $this->assertSame('tk_test', $info->authToken);
+    }
+
+    /**
      * Test create with auth sets username and password.
      */
     public function test_create_with_auth_sets_username_and_password(): void

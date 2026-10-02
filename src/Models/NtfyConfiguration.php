@@ -83,4 +83,28 @@ class NtfyConfiguration extends Model
             default => AuthMethod::None,
         });
     }
+
+    /**
+     * Convert the configuration to a ServerInfo DTO.
+     */
+    public function toServerInfo(): ServerInfo
+    {
+        return match ($this->auth_method) {
+            AuthMethod::Login => ServerInfo::createWithAuth(
+                url: $this->server_url,
+                topic: $this->topic,
+                username: $this->username,
+                password: $this->password,
+            ),
+            AuthMethod::Token => ServerInfo::createWithToken(
+                url: $this->server_url,
+                topic: $this->topic,
+                token: $this->auth_token,
+            ),
+            default => ServerInfo::createWithoutAuth(
+                url: $this->server_url,
+                topic: $this->topic,
+            ),
+        };
+    }
 }
