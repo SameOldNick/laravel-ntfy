@@ -2,6 +2,9 @@
 
 namespace SameOldNick\Ntfy\DTOs;
 
+use Illuminate\Support\Str;
+use SameOldNick\Ntfy\Enums\AuthMethod;
+
 /**
  * Data Transfer Object for ntfy server information.
  */
@@ -21,6 +24,34 @@ class ServerInfo
         public readonly ?array $httpOptions = null,
     ) {
         //
+    }
+
+    /**
+     * Check if the server URL is valid.
+     */
+    public function hasUrl(): bool
+    {
+        return ! empty($this->url) && Str::isUrl($this->url, ['https', 'http']);
+    }
+
+    /**
+     * Check if authentication information is provided.
+     */
+    public function hasAuth(): bool
+    {
+        return $this->authUsername !== null || $this->authPassword !== null || $this->authToken !== null;
+    }
+
+    /**
+     * Get the authentication method based on provided credentials.
+     */
+    public function getAuthMethod(): AuthMethod
+    {
+        return match (true) {
+            $this->authUsername !== null || $this->authPassword !== null => AuthMethod::Login,
+            $this->authToken !== null => AuthMethod::Token,
+            default => AuthMethod::None,
+        };
     }
 
     /**
