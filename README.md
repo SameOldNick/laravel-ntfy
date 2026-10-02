@@ -184,6 +184,7 @@ When you don't have a notifiable (for example, a CLI command, scheduled job, or 
 use Ntfy\Exception\EndpointException;
 use Ntfy\Exception\NtfyException;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
+use SameOldNick\Ntfy\Exceptions\InvalidServerUrlException;
 use SameOldNick\Ntfy\Facades\Ntfy;
 use SameOldNick\Ntfy\Services\MessageBuilder;
 
@@ -204,8 +205,10 @@ try {
 
     // Message sent successfully.
     $response->id(); // unique message ID
+} catch (InvalidServerUrlException $ex) {
+    // The server URL is not a valid http:// or https:// URL.
 } catch (NtfyException|EndpointException $ex) {
-    // Handle the error.
+    // Handle any other error.
 }
 ```
 
