@@ -4,6 +4,7 @@ namespace SameOldNick\Ntfy\Tests\Unit;
 
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Enums\AuthMethod;
+use SameOldNick\Ntfy\ServiceProvider;
 use SameOldNick\Ntfy\Tests\TestCase;
 
 class ServerInfoTest extends TestCase
@@ -483,6 +484,26 @@ class ServerInfoTest extends TestCase
     {
         $info = ServerInfo::createWithToken('https://ntfy.example.com/', '');
 
+        $this->assertSame(AuthMethod::None, $info->getAuthMethod());
+    }
+
+    /**
+     * Test from config resolves the package defaults without published config.
+     *
+     * The service provider merges config/ntfy.php, so fromConfig() must work in
+     * an application that has not published the config file.
+     */
+    public function test_from_config_resolves_package_defaults_without_published_config(): void
+    {
+        config()->set('ntfy', []);
+
+        (new ServiceProvider($this->app))->register();
+
+        $info = ServerInfo::fromConfig();
+
+        $this->assertSame(config('ntfy.global.server_url'), $info->url);
+        $this->assertTrue($info->hasUrl());
+        $this->assertFalse($info->hasAuth());
         $this->assertSame(AuthMethod::None, $info->getAuthMethod());
     }
 }
