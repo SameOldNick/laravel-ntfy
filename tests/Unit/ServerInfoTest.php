@@ -319,12 +319,9 @@ class ServerInfoTest extends TestCase
     }
 
     /**
-     * Test has auth is true when credentials are empty strings.
-     *
-     * hasAuth() checks for null, so empty credentials still count as "provided".
-     * This documents current behaviour; createClient() uses empty() instead.
+     * Test has auth is false when credentials are empty strings.
      */
-    public function test_has_auth_is_true_for_empty_string_credentials(): void
+    public function test_has_auth_is_false_for_empty_string_credentials(): void
     {
         $info = new ServerInfo(
             url: 'https://ntfy.example.com/',
@@ -332,7 +329,7 @@ class ServerInfoTest extends TestCase
             authPassword: '',
         );
 
-        $this->assertTrue($info->hasAuth());
+        $this->assertFalse($info->hasAuth());
     }
 
     /**
@@ -460,12 +457,12 @@ class ServerInfoTest extends TestCase
     }
 
     /**
-     * Test get auth method is username and password for empty string credentials.
+     * Test get auth method is none for empty string credentials.
      *
-     * getAuthMethod() checks for null, so empty credentials still select
-     * username/password authentication.
+     * getAuthMethod() uses empty() checks, so empty credentials do not
+     * select an authentication method.
      */
-    public function test_get_auth_method_is_username_password_for_empty_string_credentials(): void
+    public function test_get_auth_method_is_none_for_empty_string_credentials(): void
     {
         $info = new ServerInfo(
             url: 'https://ntfy.example.com/',
@@ -473,19 +470,19 @@ class ServerInfoTest extends TestCase
             authPassword: '',
         );
 
-        $this->assertSame(AuthMethod::Login, $info->getAuthMethod());
+        $this->assertSame(AuthMethod::None, $info->getAuthMethod());
     }
 
     /**
-     * Test get auth method is token for an empty string token.
+     * Test get auth method is none for an empty string token.
      *
-     * getAuthMethod() checks for null, so an empty token still selects
-     * token authentication.
+     * getAuthMethod() uses empty() checks, so an empty token does not
+     * select token authentication.
      */
-    public function test_get_auth_method_is_token_for_empty_string_token(): void
+    public function test_get_auth_method_is_none_for_empty_string_token(): void
     {
         $info = ServerInfo::createWithToken('https://ntfy.example.com/', '');
 
-        $this->assertSame(AuthMethod::Token, $info->getAuthMethod());
+        $this->assertSame(AuthMethod::None, $info->getAuthMethod());
     }
 }

@@ -14,6 +14,7 @@ use Ntfy\Server;
 use SameOldNick\Ntfy\DTOs\MessageResponse;
 use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
+use SameOldNick\Ntfy\Enums\AuthMethod;
 
 class Ntfy
 {
@@ -64,12 +65,12 @@ class Ntfy
     {
         $server = new Server($serverInfo->url);
 
-        $auth = match (true) {
-            ! empty($serverInfo->authUsername) || ! empty($serverInfo->authPassword) => new User(
+        $auth = match ($serverInfo->getAuthMethod()) {
+            AuthMethod::Login => new User(
                 $serverInfo->authUsername,
                 $serverInfo->authPassword,
             ),
-            ! empty($serverInfo->authToken) => new Token(
+            AuthMethod::Token => new Token(
                 $serverInfo->authToken,
             ),
             default => null,

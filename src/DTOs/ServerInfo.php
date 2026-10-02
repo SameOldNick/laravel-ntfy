@@ -39,7 +39,7 @@ class ServerInfo
      */
     public function hasAuth(): bool
     {
-        return $this->authUsername !== null || $this->authPassword !== null || $this->authToken !== null;
+        return ! empty($this->authUsername) || ! empty($this->authPassword) || ! empty($this->authToken);
     }
 
     /**
@@ -48,8 +48,8 @@ class ServerInfo
     public function getAuthMethod(): AuthMethod
     {
         return match (true) {
-            $this->authUsername !== null || $this->authPassword !== null => AuthMethod::Login,
-            $this->authToken !== null => AuthMethod::Token,
+            ! empty($this->authUsername) || ! empty($this->authPassword) => AuthMethod::Login,
+            ! empty($this->authToken) => AuthMethod::Token,
             default => AuthMethod::None,
         };
     }
