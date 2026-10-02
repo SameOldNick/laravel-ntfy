@@ -15,6 +15,7 @@ use SameOldNick\Ntfy\DTOs\MessageResponse;
 use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Enums\AuthMethod;
+use SameOldNick\Ntfy\Exceptions\InvalidServerUrlException;
 
 class Ntfy
 {
@@ -31,6 +32,7 @@ class Ntfy
      *
      * @throws NtfyException
      * @throws EndpointException
+     * @throws InvalidServerUrlException Thrown if the server URL is not a valid HTTP(S) URL.
      */
     public function send(Message|MessageWithAttachment $message, ServerInfo $serverInfo): MessageResponse
     {
@@ -49,6 +51,7 @@ class Ntfy
      * Send a message via ntfy and return the raw HTTP response.
      *
      * @throws ConnectionException Thrown if the request fails due to a connection error.
+     * @throws InvalidServerUrlException Thrown if the server URL is not a valid HTTP(S) URL.
      */
     public function sendRequest(Message|MessageWithAttachment $message, ServerInfo $serverInfo): Response
     {
@@ -60,9 +63,15 @@ class Ntfy
 
     /**
      * Create the Ntfy Client instance.
+     *
+     * @throws InvalidServerUrlException Thrown if the server URL is not a valid HTTP(S) URL.
      */
     public function createClient(ServerInfo $serverInfo): Client
     {
+        if (! $serverInfo->hasUrl()) {
+            throw InvalidServerUrlException::forUrl($serverInfo->url);
+        }
+
         $server = new Server($serverInfo->url);
 
         $auth = match ($serverInfo->getAuthMethod()) {

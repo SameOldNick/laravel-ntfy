@@ -15,6 +15,7 @@ use SameOldNick\Ntfy\DTOs\FakeMessageResponse;
 use SameOldNick\Ntfy\DTOs\MessageResponse;
 use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
+use SameOldNick\Ntfy\Exceptions\InvalidServerUrlException;
 use SameOldNick\Ntfy\Facades\Ntfy as NtfyFacade;
 use SameOldNick\Ntfy\Services\Client;
 use SameOldNick\Ntfy\Services\MessageBuilder;
@@ -107,6 +108,67 @@ class NtfyServiceTest extends TestCase
 
         $this->assertEquals('https://ntfy.example.com/', $client->server->get());
         $this->assertNull($client->auth);
+    }
+
+    /**
+     * Test that createClient throws for an invalid server URL.
+     */
+    public function test_create_client_throws_for_invalid_server_url(): void
+    {
+        $serverInfo = ServerInfo::createWithoutAuth('ntfy.example.com');
+
+        $this->expectException(InvalidServerUrlException::class);
+
+        $this->ntfy->createClient($serverInfo);
+    }
+
+    /**
+     * Test that createClient throws for a URL without a host.
+     *
+     * This is stricter than the ntfy library, which only checks the scheme.
+     */
+    public function test_create_client_throws_for_url_without_host(): void
+    {
+        $serverInfo = ServerInfo::createWithoutAuth('https://');
+
+        $this->expectException(InvalidServerUrlException::class);
+
+        $this->ntfy->createClient($serverInfo);
+    }
+
+    /**
+     * Test the invalid server URL exception extends the library exception.
+     *
+     * Existing catch blocks for Ntfy\Exception\NtfyException must keep working.
+     */
+    public function test_invalid_server_url_exception_extends_library_exception(): void
+    {
+        $serverInfo = ServerInfo::createWithoutAuth('ftp://ntfy.example.com/');
+
+        try {
+            $this->ntfy->createClient($serverInfo);
+
+            $this->fail('Expected an InvalidServerUrlException to be thrown.');
+        } catch (InvalidServerUrlException $e) {
+            $this->assertInstanceOf(NtfyException::class, $e);
+            $this->assertStringContainsString('ftp://ntfy.example.com/', $e->getMessage());
+        }
+    }
+
+    /**
+     * Test that send throws for an invalid server URL.
+     */
+    public function test_send_throws_for_invalid_server_url(): void
+    {
+        Http::fake();
+
+        $message = new Message;
+        $message->topic('test-topic');
+        $message->body('Test Body');
+
+        $this->expectException(InvalidServerUrlException::class);
+
+        $this->ntfy->send($message, ServerInfo::createWithoutAuth('not-a-url'));
     }
 
     /**
