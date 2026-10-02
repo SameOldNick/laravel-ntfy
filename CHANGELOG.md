@@ -5,6 +5,28 @@ All notable changes are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-10-02
+
+### Added
+
+- `AuthMethod` enum (`Login`, `Token`, `None`) describing how a server authenticates requests.
+- `ServerInfo::getAuthMethod()` to resolve the authentication method from the configured credentials.
+- `ServerInfo::hasAuth()` to check whether any authentication information is present.
+- `ServerInfo::hasUrl()` to validate that the server URL is a supported HTTP(S) URL.
+- `ServerInfo::fromArray()` now accepts an optional `auth_method` key (an `AuthMethod` case or its string value), which is ignored because the method is derived from the credentials that are present.
+- `InvalidServerUrlException`, thrown when a server URL is not a valid HTTP(S) URL; it extends `Ntfy\Exception\NtfyException`, so existing catch blocks continue to work.
+- Unit tests covering `ServerInfo` construction (config, array, and factory methods), URL validation, and authentication detection.
+
+### Changed
+
+- `Ntfy::createClient()` now uses `ServerInfo::getAuthMethod()` instead of inlining credential checks.
+- `NtfyConfiguration::auth_method` now returns an `AuthMethod` enum case instead of a string; the JSON form still serializes to the backed string value for API consumers.
+- Authentication checks treat empty-string credentials as unset, so blank config values no longer select an authentication method.
+
+### Fixed
+
+- `Client` no longer sends empty `X-Tags` or `X-Actions` headers when the corresponding arrays are empty.
+
 ## [2.0.0] - 2026-08-30
 
 ### Added
