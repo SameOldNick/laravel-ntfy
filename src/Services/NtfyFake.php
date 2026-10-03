@@ -23,6 +23,11 @@ class NtfyFake extends Ntfy
      */
     public function __construct()
     {
+        parent::__construct(
+            enabled: (bool) config('ntfy.enabled', false),
+            httpOptions: config('ntfy.http', []),
+        );
+
         $this->messages = collect();
     }
 

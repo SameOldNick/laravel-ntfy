@@ -41,6 +41,23 @@ class NtfyServiceTest extends TestCase
     }
 
     /**
+     * Test that the ntfy config is injected when resolved from the container.
+     */
+    public function test_config_is_injected_from_config_repository(): void
+    {
+        config()->set('ntfy.enabled', true);
+        config()->set('ntfy.http', ['timeout' => 42]);
+
+        $ntfy = $this->app->make(Ntfy::class);
+
+        $this->assertTrue($ntfy->isChannelEnabled());
+
+        $client = $ntfy->createClient(ServerInfo::createWithoutAuth('https://ntfy.sh/'));
+
+        $this->assertSame(['timeout' => 42], $client->options);
+    }
+
+    /**
      * Test that Ntfy service initializes properly with basic config.
      */
     public function test_ntfy_service_initializes_with_token_config(): void

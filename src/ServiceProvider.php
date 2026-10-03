@@ -19,9 +19,7 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/ntfy.php', 'ntfy');
 
-        $this->app->singleton(Ntfy::class, function ($app) {
-            return new Ntfy;
-        });
+        $this->app->singleton(Ntfy::class);
 
         $this->app->alias(Ntfy::class, 'ntfy');
     }

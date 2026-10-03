@@ -2,6 +2,7 @@
 
 namespace SameOldNick\Ntfy\Services;
 
+use Illuminate\Container\Attributes\Config;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
@@ -22,8 +23,12 @@ class Ntfy
     /**
      * Create a new Ntfy service instance.
      */
-    public function __construct()
-    {
+    public function __construct(
+        #[Config('ntfy.enabled', false)]
+        public readonly bool $enabled = false,
+        #[Config('ntfy.http', [])]
+        public readonly array $httpOptions = [],
+    ) {
         //
     }
 
@@ -95,7 +100,7 @@ class Ntfy
      */
     public function isChannelEnabled(): bool
     {
-        return (bool) config('ntfy.enabled', false);
+        return $this->enabled;
     }
 
     /**
@@ -103,10 +108,7 @@ class Ntfy
      */
     protected function getHttpOptions(ServerInfo $serverInfo): array
     {
-        $serverOptions = $serverInfo->httpOptions ?? [];
-        $globalOptions = config('ntfy.http', []);
-
-        return array_merge($globalOptions, $serverOptions);
+        return array_merge($this->httpOptions, $serverInfo->httpOptions ?? []);
     }
 
     /**

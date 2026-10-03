@@ -35,6 +35,8 @@ class NtfyChannelTest extends TestCase
         parent::setUp();
 
         $this->ntfyMock = Mockery::mock(Ntfy::class)->makePartial();
+        $this->ntfyMock->shouldReceive('isChannelEnabled')
+            ->andReturnUsing(fn (): bool => (bool) config('ntfy.enabled', false));
         $this->channel = new NtfyChannel($this->ntfyMock);
     }
 
@@ -45,7 +47,9 @@ class NtfyChannelTest extends TestCase
     {
         config(['ntfy.enabled' => false]);
 
-        $this->assertFalse($this->channel->isEnabled());
+        $channel = new NtfyChannel($this->app->make(Ntfy::class));
+
+        $this->assertFalse($channel->isEnabled());
     }
 
     /**
@@ -55,7 +59,9 @@ class NtfyChannelTest extends TestCase
     {
         config(['ntfy.enabled' => true]);
 
-        $this->assertTrue($this->channel->isEnabled());
+        $channel = new NtfyChannel($this->app->make(Ntfy::class));
+
+        $this->assertTrue($channel->isEnabled());
     }
 
     /**
