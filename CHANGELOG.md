@@ -5,6 +5,21 @@ All notable changes are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-11-11
+
+### Added
+
+- `ntfy.model.default` config option, providing a default value for the notifiable relationship when no configuration is stored. It accepts `true` (an empty model instance), an array of attributes, a `Closure`, or a `class@method` string; closures receive the related and parent models as positional arguments, while `class@method` handlers are resolved through the container and must name their parameters `$related` and `$parent`. The default is returned by the `ntfyConfiguration()` relationship and by `NtfyConfigurationResolver::resolveForNotifiable()` (and therefore the `ntfy` notification channel), while a stored configuration always takes precedence.
+- Unit tests covering the supported default value types, the precedence of a stored configuration over the default, and routing through the `ntfy` notification channel when no configuration is stored.
+
+### Changed
+
+- The per-notifiable `enabled` check of the `ntfy` channel now also applies to a configured default, so a default with `enabled` set to `false` skips delivery for notifiables without a stored configuration. Defaults without the flag (or with it set to `true`) are treated as enabled.
+
+### Notes
+
+- Closures cannot be serialized by `php artisan config:cache`. Use an array or a `class@method` string for `ntfy.model.default` when the configuration is cached.
+
 ## [2.2.0] - 2026-11-10
 
 ### Added
