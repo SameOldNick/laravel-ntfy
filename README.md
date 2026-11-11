@@ -88,6 +88,7 @@ The model used by the `NtfyNotifiable` trait is configurable, which lets you ext
 | `ntfy.model.type`   | `null`                                           | Optional custom morph type column.                                                |
 | `ntfy.model.id`     | `null`                                           | Optional custom morph ID column.                                                  |
 | `ntfy.model.local_key` | `null`                                        | Optional custom local key on the notifiable model.                                |
+| `ntfy.model.default` | `false`                                          | Default value returned when no configuration is stored. See [default configuration](#default-configuration). |
 
 ```php
 'model' => [
@@ -96,6 +97,42 @@ The model used by the `NtfyNotifiable` trait is configurable, which lets you ext
 ```
 
 > **Note:** a `ntfy.model.class` value that is not an Eloquent model throws an `InvalidArgumentException` when the resolver is created.
+
+#### Default configuration
+
+When a notifiable has no stored configuration, the `ntfyConfiguration()` relationship can fall back to a default. This lets you route every notifiable to a shared destination, or derive one per notifiable, without creating a row for each user:
+
+```php
+'model' => [
+    'default' => [
+        'server_url' => 'https://ntfy.example.com',
+        'topic' => 'alerts',
+    ],
+],
+```
+
+The `default` option accepts:
+
+| Value                  | Behaviour                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `false` (default)      | No default; the relationship returns `null` when no configuration is stored.                                  |
+| `true`                 | An empty, unsaved configuration model. It is not routable as-is because it has no `server_url`.               |
+| `array`                | An unsaved configuration model filled with the given attributes.                                              |
+| `Closure`              | Called with the related (configuration) and parent (notifiable) models; returns the model to use.             |
+| `class@method` string  | Resolved through the container with the same `related` and `parent` arguments.                                |
+
+```php
+'model' => [
+    'default' => fn ($related, $parent) => $related->forceFill([
+        'server_url' => 'https://ntfy.example.com',
+        'topic' => 'user-'.$parent->getKey(),
+    ]),
+],
+```
+
+A stored configuration always takes precedence over the default, and the default is also honoured when the configuration is resolved outside the relationship (for example by the `ntfy` notification channel).
+
+> **Note:** closures cannot be serialized by `php artisan config:cache`, so prefer an array or a `class@method` string when the configuration is cached.
 
 
 ## Sending notifications
@@ -133,6 +170,8 @@ $user->ntfyConfiguration()->create([
     'auth_token' => 'tk_...', // or 'username' + 'password'
 ]);
 ```
+
+Notifiables without a stored configuration resolve to `null` by default. To fall back to a shared or derived destination instead, configure `ntfy.model.default` (see [default configuration](#default-configuration)).
 
 **Option B — manual routing (hard-coded destination).**
 
