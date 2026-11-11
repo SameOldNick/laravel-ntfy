@@ -128,6 +128,30 @@ class NtfyConfigurationTest extends TestCase
     }
 
     /**
+     * Test the enabled flag defaults to true.
+     */
+    public function test_enabled_defaults_to_true(): void
+    {
+        $user = User::factory()->create();
+
+        $config = $user->ntfyConfiguration()->create([
+            'server_url' => 'https://ntfy.example.com/',
+            'topic' => 'alerts',
+        ]);
+
+        $this->assertTrue($config->fresh()->enabled);
+    }
+
+    /**
+     * Test the enabled flag is cast to a boolean.
+     */
+    public function test_enabled_is_cast_to_boolean(): void
+    {
+        $this->assertTrue((new NtfyConfiguration(['enabled' => 1]))->enabled);
+        $this->assertFalse((new NtfyConfiguration(['enabled' => 0]))->enabled);
+    }
+
+    /**
      * Test notifiable relationship returns the owning model.
      */
     public function test_notifiable_relationship_returns_owner(): void

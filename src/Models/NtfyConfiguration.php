@@ -9,6 +9,7 @@ use SameOldNick\Ntfy\Enums\AuthMethod;
 
 /**
  * @property int $id
+ * @property bool $enabled
  * @property string $server_url
  * @property string $topic
  * @property string|null $auth_token
@@ -29,6 +30,7 @@ class NtfyConfiguration extends Model
         'auth_token',
         'username',
         'password',
+        'enabled',
     ];
 
     /**
@@ -37,6 +39,7 @@ class NtfyConfiguration extends Model
      * @var array
      */
     protected $casts = [
+        'enabled' => 'boolean',
         'server_url' => 'string',
         'topic' => 'string',
         'auth_token' => 'encrypted',

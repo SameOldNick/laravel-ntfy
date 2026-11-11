@@ -2,11 +2,13 @@
 
 namespace SameOldNick\Ntfy\Channels;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Client\Response;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Ntfy\Message;
 use SameOldNick\Ntfy\Contracts\NtfyNotification;
+use SameOldNick\Ntfy\Contracts\ResolvesNtfyConfiguration;
 use SameOldNick\Ntfy\DTOs\MessageWithAttachment;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Services\Ntfy;
@@ -27,8 +29,8 @@ class NtfyChannel
      */
     public function send(object $notifiable, Notification $notification): ?Response
     {
-        if (! $this->isEnabled()) {
-            Log::warning('NtfyChannel: Ntfy is not enabled in the configuration. Skipping notification.', [
+        if (! $this->isEnabled($notifiable)) {
+            Log::warning('NtfyChannel: Ntfy is not enabled. Skipping notification.', [
                 'notifiable' => $notifiable,
                 'notification' => $notification,
             ]);
@@ -68,11 +70,41 @@ class NtfyChannel
     }
 
     /**
-     * Check if ntfy notification channel is enabled in the configuration.
+     * Check if the ntfy notification channel is enabled.
+     *
+     * Pass a notifiable to also honour the `enabled` flag stored on its configuration.
      */
-    public function isEnabled(): bool
+    public function isEnabled(?object $notifiable = null): bool
     {
-        return $this->ntfy->isChannelEnabled();
+        if (! $this->ntfy->isChannelEnabled()) {
+            return false;
+        }
+
+        return $notifiable === null || $this->isEnabledForNotifiable($notifiable);
+    }
+
+    /**
+     * Check if ntfy delivery is enabled for the given notifiable.
+     */
+    protected function isEnabledForNotifiable(object $notifiable): bool
+    {
+        if (! $notifiable instanceof Model) {
+            // Notifiables without a stored configuration (e.g. AnonymousNotifiable) are routed through
+            // routeNotificationFor, so the channel-level setting is the only gate for them.
+            return true;
+        }
+
+        $ntfyConfiguration = app(ResolvesNtfyConfiguration::class)->resolveForNotifiable($notifiable);
+
+        if ($ntfyConfiguration === null) {
+            // No stored configuration: delivery is still possible through routeNotificationFor.
+            return true;
+        }
+
+        $enabled = $ntfyConfiguration->getAttribute('enabled');
+
+        // Configurations stored before the flag existed have no value, so treat them as enabled.
+        return $enabled === null || filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

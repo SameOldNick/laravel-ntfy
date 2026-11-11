@@ -20,6 +20,7 @@ use SameOldNick\Ntfy\Services\Client;
 use SameOldNick\Ntfy\Services\MessageBuilder;
 use SameOldNick\Ntfy\Services\Ntfy;
 use SameOldNick\Ntfy\Tests\TestCase;
+use Workbench\App\Models\User;
 
 class NtfyChannelTest extends TestCase
 {
@@ -976,5 +977,103 @@ class NtfyChannelTest extends TestCase
             ->andReturn(new Response($response->wait()));
 
         $this->channel->send($notifiable, $notification);
+    }
+
+    /**
+     * Build a notification that sends a simple ntfy message.
+     */
+    protected function simpleNotification(): Notification
+    {
+        return new class extends Notification implements NtfyNotification
+        {
+            public function toNtfy(object $notifiable): Message
+            {
+                $message = new Message;
+                $message->topic('alerts');
+                $message->title('Test');
+
+                return $message;
+            }
+        };
+    }
+
+    /**
+     * Test channel sends when the notifiable configuration is enabled.
+     */
+    public function test_channel_sends_when_notifiable_configuration_is_enabled(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $user = User::factory()->create();
+
+        $user->ntfyConfiguration()->create([
+            'server_url' => 'https://ntfy.sh/',
+            'topic' => 'alerts',
+            'enabled' => true,
+        ]);
+
+        $this->ntfyMock
+            ->shouldReceive('sendRequest')
+            ->once()
+            ->andReturn(new Response(Http::response(['id' => 'msg-enabled'])->wait()));
+
+        $this->assertTrue($this->channel->isEnabled($user));
+
+        $this->channel->send($user, $this->simpleNotification());
+    }
+
+    /**
+     * Test channel skips sending when the notifiable configuration is disabled.
+     */
+    public function test_channel_skips_sending_when_notifiable_configuration_is_disabled(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $user = User::factory()->create();
+
+        $user->ntfyConfiguration()->create([
+            'server_url' => 'https://ntfy.sh/',
+            'topic' => 'alerts',
+            'enabled' => false,
+        ]);
+
+        $this->ntfyMock->shouldNotReceive('sendRequest');
+
+        $this->assertFalse($this->channel->isEnabled($user));
+
+        $this->channel->send($user, $this->simpleNotification());
+    }
+
+    /**
+     * Test channel still sends for notifiables that route manually without a stored configuration.
+     */
+    public function test_channel_sends_without_stored_configuration(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $user = User::factory()->create();
+        $user->ntfyRoute = [
+            'server_url' => 'https://ntfy.sh/',
+            'topic' => 'alerts',
+        ];
+
+        $this->ntfyMock
+            ->shouldReceive('sendRequest')
+            ->once()
+            ->andReturn(new Response(Http::response(['id' => 'msg-routed'])->wait()));
+
+        $this->assertTrue($this->channel->isEnabled($user));
+
+        $this->channel->send($user, $this->simpleNotification());
+    }
+
+    /**
+     * Test channel is enabled for notifiables that are not Eloquent models.
+     */
+    public function test_channel_is_enabled_for_non_model_notifiables(): void
+    {
+        config(['ntfy.enabled' => true]);
+
+        $this->assertTrue($this->channel->isEnabled(new class {}));
     }
 }
