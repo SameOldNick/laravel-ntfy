@@ -46,6 +46,14 @@ php artisan migrate
 
 You can skip this step if you only send messages to hard-coded or config-driven destinations using the standalone service (see below).
 
+Each stored configuration has an `enabled` flag (default `true`) that lets you turn ntfy off per notifiable without deleting its destination:
+
+```php
+$user->ntfyConfiguration()->update(['enabled' => false]);
+```
+
+> **Upgrading:** if you published the migrations before the `enabled` flag existed, publish and run the new migration (`add_enabled_to_ntfy_configurations_table`). Existing rows are migrated with `enabled = true`, and rows without a value are treated as enabled.
+
 ## Configuration
 
 The published `config/ntfy.php` file exposes the following environment variables:
@@ -66,6 +74,29 @@ The published `config/ntfy.php` file exposes the following environment variables
 | `NTFY_HTTP_RETRY_DELAY`        | `100`              | Delay between retries in milliseconds.                                                                                |
 
 > **Note:** `ntfy.enabled` only controls the notification channel. When it is `false`, notifications routed through `via('ntfy')` are skipped (with a log entry), but you can still send messages directly through the `Ntfy` service/facade.
+>
+> A stored configuration can disable delivery for a single notifiable through its `enabled` flag. A configuration whose `enabled` flag is `false` skips the channel for that notifiable only; notifiables without a stored configuration are unaffected.
+
+### Per-user configuration model
+
+The model used by the `NtfyNotifiable` trait is configurable, which lets you extend or replace `NtfyConfiguration` (for example to add a relationship or a custom table):
+
+| Config key          | Default                                          | Description                                                                      |
+| ------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `ntfy.model.class`  | `SameOldNick\Ntfy\Models\NtfyConfiguration::class` | The model that stores configurations. It must extend `Illuminate\Database\Eloquent\Model` and provide a `toServerInfo()` method plus an `enabled` flag. |
+| `ntfy.model.name`   | `notifiable`                                     | The morph name used for the relationship (defines the `{name}_id` / `{name}_type` columns). |
+| `ntfy.model.type`   | `null`                                           | Optional custom morph type column.                                                |
+| `ntfy.model.id`     | `null`                                           | Optional custom morph ID column.                                                  |
+| `ntfy.model.local_key` | `null`                                        | Optional custom local key on the notifiable model.                                |
+
+```php
+'model' => [
+    'class' => \App\Models\UserNtfyConfiguration::class,
+],
+```
+
+> **Note:** a `ntfy.model.class` value that is not an Eloquent model throws an `InvalidArgumentException` when the resolver is created.
+
 
 ## Sending notifications
 
