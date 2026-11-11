@@ -4,6 +4,7 @@ namespace SameOldNick\Ntfy\Concerns;
 
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Notifications\Notification;
+use SameOldNick\Ntfy\Contracts\ResolvesNtfyConfiguration;
 use SameOldNick\Ntfy\DTOs\ServerInfo;
 use SameOldNick\Ntfy\Models\NtfyConfiguration;
 
@@ -12,7 +13,7 @@ use SameOldNick\Ntfy\Models\NtfyConfiguration;
  *
  * Provides ntfy-specific notification routing and configuration for notifiable models.
  *
- * @property-read NtfyConfiguration|null $ntfyConfiguration
+ * @property-read NtfyConfiguration|null $ntfyConfiguration The configuration model (see the `ntfy.model.class` option).
  */
 trait NtfyNotifiable
 {
@@ -23,7 +24,7 @@ trait NtfyNotifiable
      */
     public function ntfyConfiguration()
     {
-        return $this->morphOne(NtfyConfiguration::class, 'notifiable');
+        return app(ResolvesNtfyConfiguration::class)->resolveRelationshipForNotifiable($this);
     }
 
     /**

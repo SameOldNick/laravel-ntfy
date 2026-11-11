@@ -6,7 +6,9 @@ use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use SameOldNick\Ntfy\Channels\NtfyChannel;
+use SameOldNick\Ntfy\Contracts\ResolvesNtfyConfiguration;
 use SameOldNick\Ntfy\Services\Ntfy;
+use SameOldNick\Ntfy\Services\NtfyConfigurationResolver;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -22,6 +24,8 @@ class ServiceProvider extends BaseServiceProvider
         $this->app->singleton(Ntfy::class);
 
         $this->app->alias(Ntfy::class, 'ntfy');
+
+        $this->app->bind(ResolvesNtfyConfiguration::class, NtfyConfigurationResolver::class);
     }
 
     /**

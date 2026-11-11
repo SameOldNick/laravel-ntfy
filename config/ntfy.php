@@ -1,11 +1,46 @@
 <?php
 
+use SameOldNick\Ntfy\Models\NtfyConfiguration;
+
 return [
     /**
      * Whether ntfy notifications are enabled.
      * This disables/enables the NtfyChannel. The Ntfy service can still be used directly.
      */
     'enabled' => env('NTFY_ENABLED', false),
+
+    'model' => [
+        /**
+         * The model to use for storing ntfy configurations.
+         * It must extend \Illuminate\Database\Eloquent\Model and provide a toServerInfo() method
+         * plus an "enabled" flag; the default model provides both.
+         */
+        'class' => NtfyConfiguration::class,
+
+        /**
+         * The morph name to use for the notifiable relationship.
+         * It determines the foreign key ("{name}_id") and morph type ("{name}_type") columns.
+         */
+        'name' => 'notifiable',
+
+        /**
+         * The morph type to use for the notifiable relationship.
+         * If null, it will use the default morph type.
+         */
+        'type' => null,
+
+        /**
+         * The morph id to use for the notifiable relationship.
+         * If null, it will use the default morph id.
+         */
+        'id' => null,
+
+        /**
+         * The morph local key to use for the notifiable relationship.
+         * If null, it will use the default local key.
+         */
+        'local_key' => null,
+    ],
 
     /**
      * Global configuration for the Ntfy service.
