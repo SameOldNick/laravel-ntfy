@@ -186,6 +186,37 @@ class NtfyConfigurationResolverTest extends TestCase
     }
 
     /**
+     * Test a Closure default receives the models positionally, regardless of parameter names.
+     */
+    public function test_uses_default_closure_with_arbitrary_parameter_names(): void
+    {
+        config(['ntfy.model.default' => fn ($configuration, $notifiable) => $configuration->forceFill([
+            'topic' => 'positional-'.$notifiable->getKey(),
+        ])]);
+
+        $user = User::factory()->create();
+
+        $configuration = $this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable($user);
+
+        $this->assertSame('positional-'.$user->getKey(), $configuration->topic);
+    }
+
+    /**
+     * Test a default callback returning a non-model is rejected.
+     */
+    public function test_rejects_default_callback_returning_non_model(): void
+    {
+        config(['ntfy.model.default' => fn ($related, $parent) => ['topic' => 'invalid']]);
+
+        $user = User::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must return an instance of');
+
+        $user->ntfyConfiguration;
+    }
+
+    /**
      * Test a string default is resolved through the container.
      */
     public function test_uses_default_class_method_string(): void

@@ -44,7 +44,9 @@ return [
         /**
          * The default value to use for the notifiable relationship.
          * This can be a boolean, a Closure, a string (class@method), or an array of attributes.
-         * If a Closure or string is provided, it will be called with the related model and the parent model as arguments.
+         * A Closure receives the related model and the parent model as its first and second arguments.
+         * A class@method string is resolved through the container, so its parameters must be named
+         * $related and $parent to receive those models.
          * If an array is provided, it will be used to fill the related model.
          * If false, no default value will be used.
          * If true, the default value will be an empty model instance.

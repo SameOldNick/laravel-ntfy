@@ -2,6 +2,7 @@
 
 namespace SameOldNick\Ntfy\Services;
 
+use Closure;
 use Illuminate\Container\Attributes\Config;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
@@ -99,15 +100,38 @@ class NtfyConfigurationResolver implements ResolvesNtfyConfiguration
             $this->getMorphLocalKey(),
         );
 
-        if ($this->default) {
-            if (is_callable($this->default) || is_string($this->default)) {
-                $morph->withDefault(fn ($related, $parent) => app()->call($this->default, ['related' => $related, 'parent' => $parent]));
-            } else {
-                $morph->withDefault($this->default);
-            }
+        if ($this->default instanceof Closure) {
+            $morph->withDefault(fn ($related, $parent) => $this->validateDefault(
+                ($this->default)($related, $parent),
+            ));
+        } elseif (is_callable($this->default) || is_string($this->default)) {
+            $morph->withDefault(fn ($related, $parent) => $this->validateDefault(
+                app()->call($this->default, ['related' => $related, 'parent' => $parent]),
+            ));
+        } elseif ($this->default) {
+            // `true` yields an empty instance and arrays are applied with forceFill().
+            $morph->withDefault($this->default);
         }
 
         return $morph;
+    }
+
+    /**
+     * Ensure a default callback returned a model, or a falsy value to fall back to the generated default.
+     *
+     * @throws InvalidArgumentException
+     */
+    protected function validateDefault(mixed $default): mixed
+    {
+        if ($default === null || $default === false || $default instanceof Model) {
+            return $default;
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'The ntfy model default callback must return an instance of %s, [%s] returned.',
+            Model::class,
+            get_debug_type($default),
+        ));
     }
 
     /**
