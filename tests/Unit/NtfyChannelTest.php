@@ -1045,6 +1045,36 @@ class NtfyChannelTest extends TestCase
     }
 
     /**
+     * Test channel routes to the default configuration when no configuration is stored.
+     */
+    public function test_channel_routes_to_default_configuration_when_none_is_stored(): void
+    {
+        config([
+            'ntfy.enabled' => true,
+            'ntfy.model.default' => [
+                'server_url' => 'https://ntfy.example.com/',
+                'topic' => 'alerts',
+            ],
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->ntfyMock
+            ->shouldReceive('sendRequest')
+            ->once()
+            ->with(Mockery::type(Message::class), Mockery::on(function ($serverInfo) {
+                return $serverInfo instanceof ServerInfo &&
+                       $serverInfo->url === 'https://ntfy.example.com/' &&
+                       $serverInfo->topic === 'alerts';
+            }))
+            ->andReturn(new Response(Http::response(['id' => 'msg-default'])->wait()));
+
+        $this->assertTrue($this->channel->isEnabled($user));
+
+        $this->channel->send($user, $this->simpleNotification());
+    }
+
+    /**
      * Test channel still sends for notifiables that route manually without a stored configuration.
      */
     public function test_channel_sends_without_stored_configuration(): void
