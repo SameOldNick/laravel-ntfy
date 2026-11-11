@@ -15,7 +15,7 @@ use SameOldNick\Ntfy\Enums\AuthMethod;
  * @property string|null $auth_token
  * @property string|null $username
  * @property string|null $password
- * @property AuthMethod $auth_method
+ * @property-read AuthMethod $auth_method
  */
 class NtfyConfiguration extends Model
 {
