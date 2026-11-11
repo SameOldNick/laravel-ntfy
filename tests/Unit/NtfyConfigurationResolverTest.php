@@ -6,6 +6,8 @@ use InvalidArgumentException;
 use SameOldNick\Ntfy\Contracts\ResolvesNtfyConfiguration;
 use SameOldNick\Ntfy\Models\NtfyConfiguration;
 use SameOldNick\Ntfy\Services\NtfyConfigurationResolver;
+use SameOldNick\Ntfy\Tests\Fixtures\CustomNtfyConfiguration;
+use SameOldNick\Ntfy\Tests\Fixtures\DefaultNtfyConfigurationFactory;
 use SameOldNick\Ntfy\Tests\TestCase;
 use stdClass;
 use Workbench\App\Models\User;
@@ -241,20 +243,5 @@ class NtfyConfigurationResolverTest extends TestCase
         $this->expectExceptionMessage('must be an instance of');
 
         $this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable(new stdClass);
-    }
-}
-
-class CustomNtfyConfiguration extends NtfyConfiguration
-{
-    protected $table = 'ntfy_configurations';
-}
-
-class DefaultNtfyConfigurationFactory
-{
-    public function make(NtfyConfiguration $related, User $parent): NtfyConfiguration
-    {
-        $related->forceFill(['topic' => 'string-'.$parent->getKey()]);
-
-        return $related;
     }
 }
