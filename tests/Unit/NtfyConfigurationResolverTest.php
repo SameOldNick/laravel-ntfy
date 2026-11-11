@@ -25,6 +25,7 @@ class NtfyConfigurationResolverTest extends TestCase
         $this->assertNull($resolver->getMorphType());
         $this->assertNull($resolver->getMorphId());
         $this->assertNull($resolver->getMorphLocalKey());
+        $this->assertFalse($resolver->default);
     }
 
     /**
@@ -118,6 +119,117 @@ class NtfyConfigurationResolverTest extends TestCase
         $user = User::factory()->create();
 
         $this->assertNull($this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable($user));
+        $this->assertNull($user->ntfyConfiguration);
+    }
+
+    /**
+     * Test a default of true returns an empty model instance.
+     */
+    public function test_uses_empty_model_as_default_when_enabled(): void
+    {
+        config(['ntfy.model.default' => true]);
+
+        $user = User::factory()->create();
+
+        $configuration = $user->ntfyConfiguration;
+
+        $this->assertInstanceOf(NtfyConfiguration::class, $configuration);
+        $this->assertFalse($configuration->exists);
+        $this->assertNull($configuration->getKey());
+    }
+
+    /**
+     * Test an array default fills the related model.
+     */
+    public function test_uses_default_attributes(): void
+    {
+        config(['ntfy.model.default' => [
+            'server_url' => 'https://ntfy.example.com/',
+            'topic' => 'default-topic',
+        ]]);
+
+        $user = User::factory()->create();
+
+        $configuration = $this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable($user);
+
+        $this->assertInstanceOf(NtfyConfiguration::class, $configuration);
+        $this->assertSame('https://ntfy.example.com/', $configuration->server_url);
+        $this->assertSame('default-topic', $configuration->topic);
+    }
+
+    /**
+     * Test a Closure default receives the related and parent models.
+     */
+    public function test_uses_default_closure(): void
+    {
+        $receivedRelated = null;
+        $receivedParent = null;
+
+        config(['ntfy.model.default' => function ($related, $parent) use (&$receivedRelated, &$receivedParent) {
+            $receivedRelated = $related;
+            $receivedParent = $parent;
+
+            $related->forceFill(['topic' => 'closure-topic']);
+
+            return $related;
+        }]);
+
+        $user = User::factory()->create();
+
+        $configuration = $this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable($user);
+
+        $this->assertSame('closure-topic', $configuration->topic);
+        $this->assertSame($configuration, $receivedRelated);
+        $this->assertTrue($receivedParent->is($user));
+    }
+
+    /**
+     * Test a string default is resolved through the container.
+     */
+    public function test_uses_default_class_method_string(): void
+    {
+        config(['ntfy.model.default' => DefaultNtfyConfigurationFactory::class.'@make']);
+
+        $user = User::factory()->create();
+
+        $configuration = $this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable($user);
+
+        $this->assertInstanceOf(NtfyConfiguration::class, $configuration);
+        $this->assertSame('string-'.$user->getKey(), $configuration->topic);
+    }
+
+    /**
+     * Test an existing configuration takes precedence over the default.
+     */
+    public function test_existing_configuration_takes_precedence_over_default(): void
+    {
+        config(['ntfy.model.default' => [
+            'server_url' => 'https://ntfy.example.com/',
+            'topic' => 'default-topic',
+        ]]);
+
+        $user = User::factory()->create();
+
+        $user->ntfyConfiguration()->create([
+            'server_url' => 'https://existing.example.com/',
+            'topic' => 'existing-topic',
+        ]);
+
+        $configuration = $this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable($user);
+
+        $this->assertSame('existing-topic', $configuration->topic);
+    }
+
+    /**
+     * Test a null default returns null when no configuration exists.
+     */
+    public function test_null_default_returns_null(): void
+    {
+        config(['ntfy.model.default' => null]);
+
+        $user = User::factory()->create();
+
+        $this->assertNull($this->app->make(ResolvesNtfyConfiguration::class)->resolveForNotifiable($user));
     }
 
     /**
@@ -135,4 +247,14 @@ class NtfyConfigurationResolverTest extends TestCase
 class CustomNtfyConfiguration extends NtfyConfiguration
 {
     protected $table = 'ntfy_configurations';
+}
+
+class DefaultNtfyConfigurationFactory
+{
+    public function make(NtfyConfiguration $related, User $parent): NtfyConfiguration
+    {
+        $related->forceFill(['topic' => 'string-'.$parent->getKey()]);
+
+        return $related;
+    }
 }

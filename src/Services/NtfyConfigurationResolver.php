@@ -32,6 +32,8 @@ class NtfyConfigurationResolver implements ResolvesNtfyConfiguration
         public readonly ?string $id = null,
         #[Config('ntfy.model.local_key')]
         public readonly ?string $localKey = null,
+        #[Config('ntfy.model.default', false)]
+        public readonly mixed $default = false,
     ) {
         if (! is_subclass_of($model, Model::class)) {
             throw new InvalidArgumentException(sprintf(
@@ -89,13 +91,23 @@ class NtfyConfigurationResolver implements ResolvesNtfyConfiguration
      */
     public function resolveRelationshipForNotifiable(Model $notifiable): MorphOne
     {
-        return $notifiable->morphOne(
+        $morph = $notifiable->morphOne(
             $this->getModelClass(),
             $this->getMorphName(),
             $this->getMorphType(),
             $this->getMorphId(),
             $this->getMorphLocalKey(),
         );
+
+        if ($this->default) {
+            if (is_callable($this->default) || is_string($this->default)) {
+                $morph->withDefault(fn ($related, $parent) => app()->call($this->default, ['related' => $related, 'parent' => $parent]));
+            } else {
+                $morph->withDefault($this->default);
+            }
+        }
+
+        return $morph;
     }
 
     /**
@@ -107,6 +119,6 @@ class NtfyConfigurationResolver implements ResolvesNtfyConfiguration
             throw new InvalidArgumentException('The notifiable must be an instance of Illuminate\Database\Eloquent\Model.');
         }
 
-        return $this->resolveRelationshipForNotifiable($notifiable)->first();
+        return $this->resolveRelationshipForNotifiable($notifiable)->getResults();
     }
 }

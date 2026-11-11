@@ -40,6 +40,17 @@ return [
          * If null, it will use the default local key.
          */
         'local_key' => null,
+
+        /**
+         * The default value to use for the notifiable relationship.
+         * This can be a boolean, a Closure, a string (class@method), or an array of attributes.
+         * If a Closure or string is provided, it will be called with the related model and the parent model as arguments.
+         * If an array is provided, it will be used to fill the related model.
+         * If false, no default value will be used.
+         * If true, the default value will be an empty model instance.
+         * If null, a default will not be used, and the relationship will return null if it does not exist.
+         */
+        'default' => false,
     ],
 
     /**
