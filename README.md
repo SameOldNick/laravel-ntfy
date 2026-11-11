@@ -63,9 +63,9 @@ The published `config/ntfy.php` file exposes the following environment variables
 | `NTFY_ENABLED`                 | `false`            | Enables/disables the notification **channel**. The standalone service is always available regardless of this setting. |
 | `NTFY_SERVER_URL`              | `https://ntfy.sh/` | The ntfy server URL.                                                                                                  |
 | `NTFY_DEFAULT_TOPIC`           | `null`             | A default topic used when none is specified.                                                                          |
-| `NTFY_AUTH_USERNAME`           | `""`               | Username for basic auth (`user` method).                                                                              |
-| `NTFY_AUTH_PASSWORD`           | `""`               | Password for basic auth (`user` method).                                                                              |
-| `NTFY_AUTH_TOKEN`              | `""`               | Access token for token auth (`token` method).                                                                         |
+| `NTFY_AUTH_USERNAME`           | `""`               | Username for basic auth.                                                                                              |
+| `NTFY_AUTH_PASSWORD`           | `""`               | Password for basic auth.                                                                                              |
+| `NTFY_AUTH_TOKEN`              | `""`               | Access token for token auth.                                                                                          |
 | `NTFY_HTTP_TIMEOUT`            | `10`               | Request timeout in seconds.                                                                                           |
 | `NTFY_HTTP_CONNECT_TIMEOUT`    | `10`               | Connection timeout in seconds.                                                                                        |
 | `NTFY_HTTP_VERIFY_SSL`         | `true`             | Whether to verify SSL certificates.                                                                                   |
@@ -75,20 +75,20 @@ The published `config/ntfy.php` file exposes the following environment variables
 
 > **Note:** `ntfy.enabled` only controls the notification channel. When it is `false`, notifications routed through `via('ntfy')` are skipped (with a log entry), but you can still send messages directly through the `Ntfy` service/facade.
 >
-> A stored configuration can disable delivery for a single notifiable through its `enabled` flag. A configuration whose `enabled` flag is `false` skips the channel for that notifiable only; notifiables without a stored configuration are unaffected.
+> A stored configuration can disable delivery for a single notifiable through its `enabled` flag. A configuration whose `enabled` flag is `false` skips the channel for that notifiable only; notifiables without a stored configuration are unaffected unless a [default configuration](#default-configuration) applies to them, in which case the default's `enabled` flag is used.
 
 ### Per-user configuration model
 
 The model used by the `NtfyNotifiable` trait is configurable, which lets you extend or replace `NtfyConfiguration` (for example to add a relationship or a custom table):
 
-| Config key          | Default                                          | Description                                                                      |
-| ------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `ntfy.model.class`  | `SameOldNick\Ntfy\Models\NtfyConfiguration::class` | The model that stores configurations. It must extend `Illuminate\Database\Eloquent\Model` and provide a `toServerInfo()` method plus an `enabled` flag. |
-| `ntfy.model.name`   | `notifiable`                                     | The morph name used for the relationship (defines the `{name}_id` / `{name}_type` columns). |
-| `ntfy.model.type`   | `null`                                           | Optional custom morph type column.                                                |
-| `ntfy.model.id`     | `null`                                           | Optional custom morph ID column.                                                  |
-| `ntfy.model.local_key` | `null`                                        | Optional custom local key on the notifiable model.                                |
-| `ntfy.model.default` | `false`                                          | Default value returned when no configuration is stored. See [default configuration](#default-configuration). |
+| Config key             | Default                                            | Description                                                                                                                                             |
+| ---------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ntfy.model.class`     | `SameOldNick\Ntfy\Models\NtfyConfiguration::class` | The model that stores configurations. It must extend `Illuminate\Database\Eloquent\Model` and provide a `toServerInfo()` method plus an `enabled` flag. |
+| `ntfy.model.name`      | `notifiable`                                       | The morph name used for the relationship (defines the `{name}_id` / `{name}_type` columns).                                                             |
+| `ntfy.model.type`      | `null`                                             | Optional custom morph type column.                                                                                                                      |
+| `ntfy.model.id`        | `null`                                             | Optional custom morph ID column.                                                                                                                        |
+| `ntfy.model.local_key` | `null`                                             | Optional custom local key on the notifiable model.                                                                                                      |
+| `ntfy.model.default`   | `false`                                            | Default value returned when no configuration is stored. See [default configuration](#default-configuration).                                            |
 
 ```php
 'model' => [
@@ -119,7 +119,7 @@ The `default` option accepts:
 | `true`                 | An empty, unsaved configuration model. It is not routable as-is because it has no `server_url`.               |
 | `array`                | An unsaved configuration model filled with the given attributes.                                              |
 | `Closure`              | Called with the related (configuration) and parent (notifiable) models; returns the model to use.             |
-| `class@method` string  | Resolved through the container with the same `related` and `parent` arguments.                                |
+| `class@method` string  | Resolved through the container; parameters must be named `$related` and `$parent` to receive those models.    |
 
 ```php
 'model' => [
@@ -131,6 +131,10 @@ The `default` option accepts:
 ```
 
 A stored configuration always takes precedence over the default, and the default is also honoured when the configuration is resolved outside the relationship (for example by the `ntfy` notification channel).
+
+A `Closure` or `class@method` default must return a configuration model. Returning `null` or `false` falls back to an empty instance that already has its foreign key and morph type set; returning anything else throws an `InvalidArgumentException`.
+
+Because the channel reads the `enabled` flag from the resolved configuration, a default with `enabled => false` disables delivery for notifiables that have no stored configuration, while defaults without the flag are treated as enabled.
 
 > **Note:** closures cannot be serialized by `php artisan config:cache`, so prefer an array or a `class@method` string when the configuration is cached.
 
@@ -389,8 +393,13 @@ Ntfy::fake();
 // ... run code that sends notifications ...
 
 Ntfy::assertSent(fn ($message) => $message->getData()['title'] === 'Server down');
+Ntfy::assertNotSent(fn ($message) => $message->getData()['title'] === 'Server up');
 Ntfy::assertSentCount(1);
 Ntfy::assertNothingSent();
+
+// Inspect the messages that were sent. Each one is a Message or MessageWithAttachment;
+// for attachment messages read the payload from $message->message->getData().
+$sent = Ntfy::sent();
 ```
 
 ## Handling responses
@@ -407,7 +416,11 @@ $response->topic();     // topic the message was sent to
 $response->message();   // body content
 $response->title();     // title
 $response->priority();  // priority (1-5)
+
+$response->getResponseData(); // the full decoded response payload
 ```
+
+When the `Ntfy` facade is faked, the returned response is a `FakeMessageResponse`, which also exposes `attachment()` and `getAttachmentContent()` so attachment payloads can be asserted.
 
 ## License
 
