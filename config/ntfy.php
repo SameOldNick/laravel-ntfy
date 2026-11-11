@@ -62,8 +62,9 @@ return [
     'global' => [
         'server_url' => env('NTFY_SERVER_URL', 'https://ntfy.sh/'),
         /**
-         * Auth method
-         * Possible values: user, token, or null
+         * Credentials for authenticating with the ntfy server.
+         * The method is derived from what is set: username/password use basic auth,
+         * a token uses token auth. Leave them empty for unauthenticated requests.
          */
         'auth_username' => env('NTFY_AUTH_USERNAME', ''),
         'auth_password' => env('NTFY_AUTH_PASSWORD', ''),
