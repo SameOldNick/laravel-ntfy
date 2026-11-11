@@ -5,6 +5,38 @@ All notable changes are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-11-10
+
+### Added
+
+- `ntfy.model.class`, `ntfy.model.name`, `ntfy.model.type`, `ntfy.model.id`, and `ntfy.model.local_key` config options, so the configuration model used by `NtfyNotifiable` can be replaced. A custom model must extend `Illuminate\Database\Eloquent\Model` and provide a `toServerInfo()` method plus an `enabled` flag.
+- `ResolvesNtfyConfiguration` contract and `NtfyConfigurationResolver` service, bound in the container, for resolving the configuration model and the notifiable relationship. The resolver throws an `InvalidArgumentException` when the configured model class is not an Eloquent model.
+- `enabled` flag on the `ntfy_configurations` table, allowing ntfy to be disabled per notifiable. The column is added by the new `add_enabled_to_ntfy_configurations_table` migration and defaults to `true`, so existing rows stay enabled (see [Upgrade notes](#upgrade-notes)).
+- `enabled` attribute on `NtfyConfiguration`; it is mass assignable and cast to a boolean.
+- Unit tests covering the configuration resolver, the configurable model class, and the per-notifiable `enabled` flag.
+
+### Changed
+
+- `NtfyChannel::isEnabled()` accepts an optional notifiable and now also honours the `enabled` flag of its stored configuration. Notifiables without an Eloquent configuration (and notifiables without a stored configuration) are still gated by the channel-level `ntfy.enabled` option only.
+- The `NtfyNotifiable` trait resolves its relationship through the container instead of using `NtfyConfiguration` directly.
+
+### Fixed
+
+- Passing a notifiable that is not an Eloquent model to `NtfyChannel::send()` no longer throws an `InvalidArgumentException`; the channel-level setting remains the only gate for those notifiables.
+
+### Upgrade notes
+
+- Publish and run the package migrations again to add the `enabled` column to the `ntfy_configurations` table:
+
+  ```bash
+  php artisan vendor:publish --tag=ntfy-migrations
+  php artisan migrate
+  ```
+
+  Delivery is unaffected until then (rows without an `enabled` value are treated as enabled), but the per-notifiable flag cannot be used before the column exists. Existing rows are migrated as enabled.
+
+- Subclasses of `NtfyChannel` that override `isEnabled()` must accept the new optional argument: `isEnabled(?object $notifiable = null): bool`.
+
 ## [2.1.0] - 2026-10-02
 
 ### Added
